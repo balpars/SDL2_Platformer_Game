@@ -87,7 +87,7 @@ namespace Platformer_Game
             Cleanup();
         }
 
-        public void Update(float deltaTime) // Protected yerine Public yapıldı
+        public void Update(float deltaTime)
         {
             player.Update(deltaTime);
             UpdateCamera();
@@ -95,10 +95,10 @@ namespace Platformer_Game
 
         private void UpdateCamera()
         {
-            cameraX = player.PositionX - (ScreenWidth / 2) + (player.FrameWidth / 2);
+            cameraX = (int)(player.PositionX - (ScreenWidth / 2) + (player.FrameWidth / 2));
         }
 
-        public void Render() // Protected yerine Public yapıldı
+        public void Render()
         {
             SDL.SDL_RenderClear(renderer);
 
@@ -108,7 +108,7 @@ namespace Platformer_Game
             SDL.SDL_RenderPresent(renderer);
         }
 
-        public void Cleanup() // Protected yerine Public yapıldı
+        public void Cleanup()
         {
             SDL.SDL_DestroyRenderer(renderer);
             SDL.SDL_DestroyWindow(window);
