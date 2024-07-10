@@ -18,8 +18,11 @@
     <None Update="Assets\map.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\world_tileset.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="Assets\Map\demo_map.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\Map\world_tileset.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Assets\_Attack.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

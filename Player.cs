@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using SDL2;
+using System.Numerics;
 
 namespace Platformer_Game
 {
@@ -17,10 +18,10 @@ namespace Platformer_Game
         Crouching,
         CrouchWalking,
         Rolling,
-        Sliding // Yeni eklenen durum
+        Sliding
     }
 
-    public class Player
+    public class Player : ITarget
     {
         private Dictionary<PlayerState, IntPtr> spritesheets;
         private PlayerState currentState;
@@ -35,30 +36,33 @@ namespace Platformer_Game
         public float PositionY { get; private set; }
         private bool isJumping;
         private float jumpSpeed;
-        private const float Gravity = 0.3f; // Yerçekimi biraz azaltıldı
-        private const float JumpSpeed = 8f; // Zıplama hızı azaltıldı
-        private const float MoveSpeed = 3f; // Hareket hızı artırıldı
-        private const float RollSpeed = 2f; // Yuvarlanma hızı
-        private const float SlideSpeed = 2f; // Kayma hızı
+        private const float Gravity = 0.3f;
+        private const float JumpSpeed = 3f;
+        private const float MoveSpeed = 1f;
+        private const float RollSpeed = 1f;
+        private const float SlideSpeed = 1f;
+        private IntPtr renderer;
 
-        public Player()
+        public Vector2 Position => new Vector2(PositionX, PositionY);
+        public SDL.SDL_Rect Rect { get; internal set; }
+
+        public Player(int x, int y, int width, int height, float speed, IntPtr renderer)
         {
-            currentState = PlayerState.Idle;
-            currentFrame = 0;
-            FrameWidth = 120;
-            FrameHeight = 80;
-            spritesheets = new Dictionary<PlayerState, IntPtr>();
-            frameCounts = new Dictionary<PlayerState, int>();
+            Rect = new SDL.SDL_Rect { x = x, y = y, w = width, h = height };
+            this.PositionX = x;
+            this.PositionY = y;
+            this.FrameWidth = width;
+            this.FrameHeight = height;
+            this.renderer = renderer;
+            this.spritesheets = new Dictionary<PlayerState, IntPtr>();
+            this.frameCounts = new Dictionary<PlayerState, int>();
             facingLeft = false;
-            PositionX = 0;
-            PositionY = 0;
             isJumping = false;
             jumpSpeed = 0;
         }
 
         public void LoadContent(IntPtr renderer)
         {
-            // Spritesheetleri yükle
             spritesheets[PlayerState.Idle] = LoadTexture(renderer, "Assets/_Idle.png");
             spritesheets[PlayerState.Running] = LoadTexture(renderer, "Assets/_Run.png");
             spritesheets[PlayerState.Jumping] = LoadTexture(renderer, "Assets/_Jump.png");
@@ -70,9 +74,8 @@ namespace Platformer_Game
             spritesheets[PlayerState.Crouching] = LoadTexture(renderer, "Assets/_CrouchFull.png");
             spritesheets[PlayerState.CrouchWalking] = LoadTexture(renderer, "Assets/_CrouchWalk.png");
             spritesheets[PlayerState.Rolling] = LoadTexture(renderer, "Assets/_Roll.png");
-            spritesheets[PlayerState.Sliding] = LoadTexture(renderer, "Assets/_SlideFull.png"); // Yeni animasyon
+            spritesheets[PlayerState.Sliding] = LoadTexture(renderer, "Assets/_SlideFull.png");
 
-            // Frame count hesapla
             CalculateFrameCounts();
         }
 
@@ -96,7 +99,7 @@ namespace Platformer_Game
             return texture;
         }
 
-        public void Update(float deltaTime)
+        public void Update(float deltaTime, byte[] keyState, CollisionManager collisionManager)
         {
             animationTimer += deltaTime;
             if (animationTimer >= animationSpeed)
@@ -104,81 +107,75 @@ namespace Platformer_Game
                 currentFrame = (currentFrame + 1) % frameCounts[currentState];
                 animationTimer = 0f;
 
-                // Attack, crouch, roll ve slide animasyonları tamamlandığında tekrar idle duruma geç
                 if ((currentState == PlayerState.Attacking || currentState == PlayerState.Attacking2 || currentState == PlayerState.AttackCombo || currentState == PlayerState.Crouching || currentState == PlayerState.CrouchWalking || currentState == PlayerState.Rolling || currentState == PlayerState.Sliding) && currentFrame == 0)
                 {
                     currentState = PlayerState.Idle;
                 }
             }
 
-            // Durum güncellemeleri ve geçişleri
-            HandleInput(deltaTime);
+            HandleInput(keyState, deltaTime, collisionManager);
             UpdatePosition(deltaTime);
         }
 
-        private void HandleInput(float deltaTime)
+        public void HandleInput(byte[] keyState, float deltaTime, CollisionManager collisionManager)
         {
-            var keystatePtr = SDL.SDL_GetKeyboardState(out _);
-            byte[] keystate = new byte[512];
-            System.Runtime.InteropServices.Marshal.Copy(keystatePtr, keystate, 0, keystate.Length);
-
             bool movingHorizontally = false;
-            bool crouching = keystate[(int)SDL.SDL_Scancode.SDL_SCANCODE_DOWN] == 1;
+            bool crouching = keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_DOWN] == 1;
 
-            if (keystate[(int)SDL.SDL_Scancode.SDL_SCANCODE_LEFT] == 1)
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_LEFT] == 1)
             {
                 facingLeft = true;
-                if (currentState != PlayerState.Rolling && currentState != PlayerState.Sliding) // Roll veya Slide sırasında hareket etmeyi önlemek için
+                if (currentState != PlayerState.Rolling && currentState != PlayerState.Sliding)
                 {
-                    PositionX -= MoveSpeed * deltaTime * 100; // deltaTime ile çarpma
+                    PositionX -= MoveSpeed * deltaTime * 100;
                     movingHorizontally = true;
                 }
             }
-            else if (keystate[(int)SDL.SDL_Scancode.SDL_SCANCODE_RIGHT] == 1)
+            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_RIGHT] == 1)
             {
                 facingLeft = false;
-                if (currentState != PlayerState.Rolling && currentState != PlayerState.Sliding) // Roll veya Slide sırasında hareket etmeyi önlemek için
+                if (currentState != PlayerState.Rolling && currentState != PlayerState.Sliding)
                 {
-                    PositionX += MoveSpeed * deltaTime * 100; // deltaTime ile çarpma
+                    PositionX += MoveSpeed * deltaTime * 100;
                     movingHorizontally = true;
                 }
             }
 
-            if (keystate[(int)SDL.SDL_Scancode.SDL_SCANCODE_UP] == 1 && !isJumping)
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_UP] == 1 && !isJumping)
             {
                 isJumping = true;
-                jumpSpeed = -JumpSpeed; // Yukarı zıplama hızı
+                jumpSpeed = -JumpSpeed;
                 currentState = PlayerState.Jumping;
             }
 
-            if (keystate[(int)SDL.SDL_Scancode.SDL_SCANCODE_X] == 1 && currentState != PlayerState.Attacking && currentState != PlayerState.Attacking2 && currentState != PlayerState.AttackCombo)
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_X] == 1 && currentState != PlayerState.Attacking && currentState != PlayerState.Attacking2 && currentState != PlayerState.AttackCombo)
             {
                 currentState = PlayerState.Attacking;
-                currentFrame = 0; // Attack animasyonunu başlat
+                currentFrame = 0;
             }
 
-            if (keystate[(int)SDL.SDL_Scancode.SDL_SCANCODE_C] == 1 && currentState != PlayerState.Attacking && currentState != PlayerState.Attacking2 && currentState != PlayerState.AttackCombo)
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_C] == 1 && currentState != PlayerState.Attacking && currentState != PlayerState.Attacking2 && currentState != PlayerState.AttackCombo)
             {
                 currentState = PlayerState.Attacking2;
-                currentFrame = 0; // Attack2 animasyonunu başlat
+                currentFrame = 0;
             }
 
-            if (keystate[(int)SDL.SDL_Scancode.SDL_SCANCODE_V] == 1 && currentState != PlayerState.Attacking && currentState != PlayerState.Attacking2 && currentState != PlayerState.AttackCombo)
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_V] == 1 && currentState != PlayerState.Attacking && currentState != PlayerState.Attacking2 && currentState != PlayerState.AttackCombo)
             {
                 currentState = PlayerState.AttackCombo;
-                currentFrame = 0; // AttackCombo animasyonunu başlat
+                currentFrame = 0;
             }
 
-            if (keystate[(int)SDL.SDL_Scancode.SDL_SCANCODE_B] == 1 && currentState != PlayerState.Rolling)
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_B] == 1 && currentState != PlayerState.Rolling)
             {
                 currentState = PlayerState.Rolling;
-                currentFrame = 0; // Roll animasyonunu başlat
+                currentFrame = 0;
             }
 
-            if (keystate[(int)SDL.SDL_Scancode.SDL_SCANCODE_N] == 1 && currentState != PlayerState.Sliding)
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_N] == 1 && currentState != PlayerState.Sliding)
             {
                 currentState = PlayerState.Sliding;
-                currentFrame = 0; // Slide animasyonunu başlat
+                currentFrame = 0;
             }
 
             if (crouching)
@@ -191,7 +188,7 @@ namespace Platformer_Game
                 {
                     currentState = PlayerState.Crouching;
                 }
-                currentFrame = 0; // Crouch veya CrouchWalk animasyonunu başlat
+                currentFrame = 0;
             }
             else if (isJumping)
             {
@@ -217,10 +214,10 @@ namespace Platformer_Game
         {
             if (isJumping)
             {
-                PositionY += jumpSpeed * deltaTime * 100; // deltaTime ile çarpma
-                jumpSpeed += Gravity * 100 * deltaTime; // deltaTime ile çarpma
+                PositionY += jumpSpeed * deltaTime * 100;
+                jumpSpeed += Gravity * 100 * deltaTime;
 
-                if (PositionY > 0) // Yere değdiğinde sıfırlama
+                if (PositionY > 0)
                 {
                     PositionY = 0;
                     isJumping = false;
@@ -232,11 +229,11 @@ namespace Platformer_Game
             {
                 if (facingLeft)
                 {
-                    PositionX -= RollSpeed * deltaTime * 100; // deltaTime ile çarpma
+                    PositionX -= RollSpeed * deltaTime * 100;
                 }
                 else
                 {
-                    PositionX += RollSpeed * deltaTime * 100; // deltaTime ile çarpma
+                    PositionX += RollSpeed * deltaTime * 100;
                 }
             }
 
@@ -244,16 +241,16 @@ namespace Platformer_Game
             {
                 if (facingLeft)
                 {
-                    PositionX -= SlideSpeed * deltaTime * 100; // deltaTime ile çarpma
+                    PositionX -= SlideSpeed * deltaTime * 100;
                 }
                 else
                 {
-                    PositionX += SlideSpeed * deltaTime * 100; // deltaTime ile çarpma
+                    PositionX += SlideSpeed * deltaTime * 100;
                 }
             }
         }
 
-        public void Render(IntPtr renderer, int x, int y)
+        public void Render(IntPtr renderer, Camera camera)
         {
             IntPtr texture = spritesheets[currentState];
             SDL.SDL_QueryTexture(texture, out _, out _, out int textureWidth, out _);
@@ -268,10 +265,12 @@ namespace Platformer_Game
             SDL.SDL_Rect dstRect = new SDL.SDL_Rect
             {
                 x = (int)PositionX,
-                y = y + (int)PositionY, // Pozisyonu düzeltme
+                y = (int)PositionY,
                 w = FrameWidth,
                 h = FrameHeight
             };
+
+            dstRect = camera.GetRenderRect(dstRect);
 
             SDL.SDL_RendererFlip flip = facingLeft ? SDL.SDL_RendererFlip.SDL_FLIP_HORIZONTAL : SDL.SDL_RendererFlip.SDL_FLIP_NONE;
             SDL.SDL_RenderCopyEx(renderer, texture, ref srcRect, ref dstRect, 0, IntPtr.Zero, flip);
