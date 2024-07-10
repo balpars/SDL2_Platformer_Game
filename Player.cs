@@ -15,9 +15,6 @@ namespace Platformer_Game
         private bool isJumping;
         private float jumpSpeed;
         private SoundManager soundManager;
-        private float runningTimer; // Timer to track how long the player has been running
-
-        private float idleDelayTimer = 0.0f; // Timer to track delay
 
         public Vector2 Position => new Vector2(rect.x, rect.y);
 
@@ -39,7 +36,6 @@ namespace Platformer_Game
             isJumping = false;
             jumpSpeed = 0f;
             this.soundManager = soundManager;
-            runningTimer = 0f; // Initialize the running timer
         }
 
         public void LoadContent()
@@ -50,59 +46,88 @@ namespace Platformer_Game
         public void Update(float deltaTime, byte[] keyState, CollisionManager collisionManager)
         {
             animationEnded = false;
-            var previousState = currentState;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
+
+            var previousState = currentState;
+
+            // Always handle movement input
             movementManager.HandleInput(keyState, ref rect, ref currentState, ref facingLeft, ref isJumping, ref jumpSpeed, deltaTime, collisionManager);
             movementManager.UpdatePosition(deltaTime, ref rect, ref currentState, ref isJumping, ref jumpSpeed, facingLeft, collisionManager);
 
-
-            //Console.WriteLine($"running time = {runningTimer}");
-
-            if (runningTimer > 0)
+            // Handle special state transitions only if the current animation has ended
+            if (animationEnded)
             {
-                runningTimer -= deltaTime;
+                HandleSpecialStateTransitions(keyState);
             }
 
-
-            if (currentState == PlayerState.Running)
+            // If state changes, reset animation
+            if (previousState != currentState)
             {
-                soundManager.PlaySound("walk");
-            }
-            if (currentState == PlayerState.Idle)
-            {
-                soundManager.StopSound("walk");
+                animationManager.ResetAnimation();
             }
 
-            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_X] == 1 && previousState != PlayerState.Attacking)
-            {
-                soundManager.PlaySound("sword");
-            }
-            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_C] == 1 && previousState != PlayerState.Attacking2)
-            {
-                soundManager.PlaySound("sword");
-            }
-            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_V] == 1 && previousState != PlayerState.AttackCombo)
-            {
-                soundManager.PlaySound("sword");
-            }
+            // Print the current state to the console for debugging
+            Console.WriteLine($"Current State: {currentState}");
 
+            // Play sound based on state changes
+            HandleSoundEffects(keyState, previousState);
+        }
+
+        private void HandleSpecialStateTransitions(byte[] keyState)
+        {
             if (animationEnded && (currentState == PlayerState.Attacking || currentState == PlayerState.Attacking2 || currentState == PlayerState.AttackCombo || currentState == PlayerState.Rolling || currentState == PlayerState.Sliding))
             {
                 currentState = PlayerState.Idle;
             }
 
-            //DebugPosition();
-            //DebugAnimation();
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_X] == 1 && currentState != PlayerState.Attacking)
+            {
+                currentState = PlayerState.Attacking;
+            }
+            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_C] == 1 && currentState != PlayerState.Attacking2)
+            {
+                currentState = PlayerState.Attacking2;
+            }
+            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_V] == 1 && currentState != PlayerState.AttackCombo)
+            {
+                currentState = PlayerState.AttackCombo;
+            }
+            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_B] == 1 && currentState != PlayerState.Rolling)
+            {
+                currentState = PlayerState.Rolling;
+            }
+            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_N] == 1 && currentState != PlayerState.Sliding)
+            {
+                currentState = PlayerState.Sliding;
+            }
         }
 
-        private void DebugAnimation()
+        private void HandleSoundEffects(byte[] keyState, PlayerState previousState)
         {
-            Console.WriteLine($"Player State: {currentState}");
-        }
+            if (currentState == PlayerState.Running && (previousState != PlayerState.Running || previousState != PlayerState.Jumping))
+            {
+                if (!soundManager.IsSoundPlaying("walk"))
+                {
+                    soundManager.PlaySound("walk");
+                }
+            }
+            else if (currentState != PlayerState.Running && previousState == PlayerState.Running)
+            {
+                soundManager.StopSound("walk");
+            }
 
-        private void DebugPosition()
-        {
-            //Console.WriteLine($"Player Position: X={rect.x}, Y={rect.y}");
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_X] == 1 && !soundManager.IsSoundPlaying("sword"))
+            {
+                soundManager.PlaySound("sword");
+            }
+            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_C] == 1 && !soundManager.IsSoundPlaying("sword"))
+            {
+                soundManager.PlaySound("sword");
+            }
+            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_V] == 1 && !soundManager.IsSoundPlaying("sword"))
+            {
+                soundManager.PlaySound("sword");
+            }
         }
 
         public void Render(Camera camera)

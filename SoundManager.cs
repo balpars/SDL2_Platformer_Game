@@ -39,12 +39,7 @@ namespace Platformer_Game
         {
             if (sounds.ContainsKey(soundName))
             {
-                // Check if the specific sound is already playing
-                if (IsSoundPlaying(soundName))
-                {
-                    return; // Do not play the same sound if it is already playing
-                }
-
+                // Play the sound without stopping other sounds
                 int channel = Mix_PlayChannel(-1, sounds[soundName], repeatCount);
                 if (channel != -1)
                 {
@@ -62,7 +57,7 @@ namespace Platformer_Game
             }
         }
 
-        private bool IsSoundPlaying(string soundName)
+        public bool IsSoundPlaying(string soundName)
         {
             if (channels.ContainsKey(soundName))
             {

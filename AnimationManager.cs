@@ -62,14 +62,20 @@ namespace Platformer_Game
             animationTimer += deltaTime;
             if (animationTimer >= animationSpeed)
             {
-                currentFrame = (currentFrame + 1) % frameCounts[currentState];
-                animationTimer = 0f;
-
-                if (currentFrame == frameCounts[currentState] - 1)
+                currentFrame++;
+                if (currentFrame >= frameCounts[currentState])
                 {
+                    currentFrame = 0;
                     animationEnded = true;
                 }
+                animationTimer = 0f;
             }
+        }
+
+        public void ResetAnimation()
+        {
+            currentFrame = 0;
+            animationTimer = 0f;
         }
 
         public int GetCurrentFrame()
