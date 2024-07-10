@@ -15,6 +15,7 @@ namespace Platformer_Game
         private bool isJumping;
         private float jumpSpeed;
         private SoundManager soundManager;
+        private float runningTimer; // Timer to track how long the player has been running
 
         private float idleDelayTimer = 0.0f; // Timer to track delay
 
@@ -38,6 +39,7 @@ namespace Platformer_Game
             isJumping = false;
             jumpSpeed = 0f;
             this.soundManager = soundManager;
+            runningTimer = 0f; // Initialize the running timer
         }
 
         public void LoadContent()
@@ -53,11 +55,20 @@ namespace Platformer_Game
             movementManager.HandleInput(keyState, ref rect, ref currentState, ref facingLeft, ref isJumping, ref jumpSpeed, deltaTime, collisionManager);
             movementManager.UpdatePosition(deltaTime, ref rect, ref currentState, ref isJumping, ref jumpSpeed, facingLeft, collisionManager);
 
-            if (currentState == PlayerState.Running && previousState != PlayerState.Running)
+
+            //Console.WriteLine($"running time = {runningTimer}");
+
+            if (runningTimer > 0)
+            {
+                runningTimer -= deltaTime;
+            }
+
+
+            if (currentState == PlayerState.Running)
             {
                 soundManager.PlaySound("walk");
             }
-            else if (currentState == PlayerState.Idle && previousState == PlayerState.Running)
+            if (currentState == PlayerState.Idle)
             {
                 soundManager.StopSound("walk");
             }

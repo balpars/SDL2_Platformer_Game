@@ -125,7 +125,7 @@ namespace Platformer_Game
 
             if (isJumping)
             {
-                Console.WriteLine($"jumpSpeed = {jumpSpeed}");
+                //Console.WriteLine($"jumpSpeed = {jumpSpeed}");
                 if (jumpSpeed > 0)
                 {
                     currentState = PlayerState.JumpFall;

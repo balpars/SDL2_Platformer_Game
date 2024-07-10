@@ -39,8 +39,17 @@ namespace Platformer_Game
         {
             if (sounds.ContainsKey(soundName))
             {
+                // Check if the specific sound is already playing
+                if (IsSoundPlaying(soundName))
+                {
+                    return; // Do not play the same sound if it is already playing
+                }
+
                 int channel = Mix_PlayChannel(-1, sounds[soundName], repeatCount);
-                channels[soundName] = channel;
+                if (channel != -1)
+                {
+                    channels[soundName] = channel;
+                }
             }
         }
 
@@ -50,8 +59,16 @@ namespace Platformer_Game
             {
                 Mix_HaltChannel(channels[soundName]);
                 channels.Remove(soundName);
-             
             }
+        }
+
+        private bool IsSoundPlaying(string soundName)
+        {
+            if (channels.ContainsKey(soundName))
+            {
+                return Mix_Playing(channels[soundName]) != 0;
+            }
+            return false;
         }
 
         public void Cleanup()
