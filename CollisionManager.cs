@@ -1,6 +1,5 @@
-﻿using System;
+﻿using SDL2;
 using System.Collections.Generic;
-using SDL2;
 
 namespace Platformer_Game
 {
@@ -13,19 +12,13 @@ namespace Platformer_Game
             this.collisionRectangles = collisionRectangles;
         }
 
-        public bool CheckCollisions(Player player, SDL.SDL_Rect newRect)
+        public bool CheckCollisions(SDL.SDL_Rect newRect)
         {
             foreach (var rect in collisionRectangles)
             {
                 if (CheckCollision(newRect, rect))
                 {
-                    if (newRect.y + newRect.h > rect.y && player.Rect.y + player.Rect.h <= rect.y)
-                    {
-                        Console.WriteLine($"Collision detected at coordinates ({rect.x}, {rect.y})");
-                        newRect.y = rect.y - player.Rect.h;
-                        player.Rect = newRect;
-                        return true;
-                    }
+                    return true;
                 }
             }
             return false;

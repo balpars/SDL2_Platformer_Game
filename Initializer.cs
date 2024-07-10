@@ -34,27 +34,36 @@ namespace Platformer_Game
 
             TileLoader tileLoader = new TileLoader();
 
+            // Load the map file
             string mapFilePath = "Assets/Map/demo_map.json";
             var mapJson = File.ReadAllText(mapFilePath);
             dynamic mapData = JsonConvert.DeserializeObject(mapJson);
 
+            // Load the tileset
             string tilesetImagePath = "Assets/Map/world_tileset.png";
             int tileWidth = mapData.tilewidth;
             int tileHeight = mapData.tileheight;
 
             tileLoader.LoadTileset(tileWidth, tileHeight, tilesetImagePath, renderer);
 
+            // Initialize player
             var playerSpawnPoint = tileLoader.GetPlayerSpawnPoint(mapData);
-            Player player = new Player((int)playerSpawnPoint.Item1, (int)playerSpawnPoint.Item2, 120, 80, 200, renderer);
-            player.LoadContent(renderer);
+            int spawnX = (int)playerSpawnPoint.Item1;
+            int spawnY = (int)playerSpawnPoint.Item2 - 25; // Adjust the Y coordinate to spawn the player higher
 
-            Camera camera = new Camera(800, 600);
+            Player player = new Player(spawnX, spawnY, 120, 80, renderer);
+
+            // Initialize camera
+            Camera camera = new Camera(800, 600); // Assuming the screen size is 800x600
             camera.SetTarget(player);
-            camera.Smoothing = 2.0f;
-            camera.Zoom = 2.0f;
+            camera.Smoothing = 2.0f; // Set to 1 for immediate follow
+            camera.Zoom = 2.0f; // Zoom factor, adjust as needed
 
+            // Initialize collision manager
             tileLoader.GenerateCollisionRectangles(mapData);
             CollisionManager collisionManager = new CollisionManager(tileLoader.CollisionRectangles);
+
+            player.LoadContent();
 
             return (window, renderer, tileLoader, mapData, player, camera, collisionManager);
         }

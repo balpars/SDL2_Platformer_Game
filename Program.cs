@@ -1,5 +1,5 @@
-﻿using System;
-using SDL2;
+﻿using SDL2;
+using System;
 
 namespace Platformer_Game
 {
@@ -11,8 +11,10 @@ namespace Platformer_Game
             {
                 var (window, renderer, tileLoader, mapData, player, camera, collisionManager) = Initializer.Init();
 
+                // Main loop
                 bool running = true;
 
+                // Fixed timestep variables
                 const float targetFps = 60.0f;
                 const float fixedDeltaTime = 1.0f / targetFps;
                 float accumulator = 0.0f;
@@ -35,23 +37,30 @@ namespace Platformer_Game
                         }
                     }
 
+                    // Process fixed update steps
                     while (accumulator >= fixedDeltaTime)
                     {
+                        // Get key states
                         IntPtr keyStatePtr = SDL.SDL_GetKeyboardState(out int numKeys);
                         byte[] keyState = new byte[numKeys];
                         System.Runtime.InteropServices.Marshal.Copy(keyStatePtr, keyState, 0, numKeys);
 
-                        player.Update(fixedDeltaTime, keyState, collisionManager); // Update metodu düzeltildi
+                        // Update game logic here
+                        player.Update(fixedDeltaTime, keyState, collisionManager);
                         camera.Update(fixedDeltaTime);
 
                         accumulator -= fixedDeltaTime;
                     }
 
+                    // Set background color to black
                     SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
                     SDL.SDL_RenderClear(renderer);
 
+                    // Render the map with camera offset
                     tileLoader.RenderMap(mapData, renderer, camera);
-                    player.Render(renderer, camera);
+
+                    // Render the player with camera offset
+                    player.Render(camera);
 
                     SDL.SDL_RenderPresent(renderer);
                 }
