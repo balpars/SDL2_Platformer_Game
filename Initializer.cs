@@ -2,16 +2,22 @@
 using System.IO;
 using Newtonsoft.Json;
 using SDL2;
+using static SDL2.SDL_mixer;
 
 namespace Platformer_Game
 {
     public static class Initializer
     {
-        public static (IntPtr window, IntPtr renderer, TileLoader tileLoader, dynamic mapData, Player player, Camera camera, CollisionManager collisionManager) Init()
+        public static (IntPtr window, IntPtr renderer, TileLoader tileLoader, dynamic mapData, Player player, Camera camera, CollisionManager collisionManager, SoundManager soundManager) Init()
         {
-            if (SDL.SDL_Init(SDL.SDL_INIT_VIDEO) < 0)
+            if (SDL.SDL_Init(SDL.SDL_INIT_VIDEO | SDL.SDL_INIT_AUDIO) < 0)
             {
                 throw new Exception($"Failed to initialize SDL: {SDL.SDL_GetError()}");
+            }
+
+            if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+            {
+                throw new Exception($"Failed to initialize SDL_mixer: {SDL.SDL_GetError()}");
             }
 
             IntPtr window = SDL.SDL_CreateWindow("Tile Loader",
@@ -49,9 +55,12 @@ namespace Platformer_Game
             // Initialize player
             var playerSpawnPoint = tileLoader.GetPlayerSpawnPoint(mapData);
             int spawnX = (int)playerSpawnPoint.Item1;
-            int spawnY = (int)playerSpawnPoint.Item2 - 25; // Adjust the Y coordinate to spawn the player higher
+            int spawnY = (int)playerSpawnPoint.Item2-25 ; // Adjust the Y coordinate to spawn the player higher
 
-            Player player = new Player(spawnX, spawnY, 120, 80, renderer);
+            SoundManager soundManager = new SoundManager();
+            soundManager.LoadContent();
+
+            Player player = new Player(spawnX, spawnY, 120, 80, renderer, soundManager);
 
             // Initialize camera
             Camera camera = new Camera(800, 600); // Assuming the screen size is 800x600
@@ -65,7 +74,7 @@ namespace Platformer_Game
 
             player.LoadContent();
 
-            return (window, renderer, tileLoader, mapData, player, camera, collisionManager);
+            return (window, renderer, tileLoader, mapData, player, camera, collisionManager, soundManager);
         }
     }
 }

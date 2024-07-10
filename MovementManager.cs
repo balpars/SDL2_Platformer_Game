@@ -4,11 +4,11 @@ namespace Platformer_Game
 {
     public class MovementManager
     {
-        private const float Gravity = 0.5f; // Yerçekimi daha yavaş
-        private const float JumpSpeed = 12f; // Zıplama hızı
-        private const float MoveSpeed = 3f; // Hareket hızı
-        private const float RollSpeed = 5f; // Yuvarlanma hızı
-        private const float SlideSpeed = 5f; // Kayma hızı
+        private const float Gravity = 0.3f; // Yerçekimi daha yavaş
+        private const float JumpSpeed = 7f; // Zıplama hızı
+        private const float MoveSpeed = 2f; // Hareket hızı
+        private const float RollSpeed = 2f; // Yuvarlanma hızı
+        private const float SlideSpeed = 2f; // Kayma hızı
 
         public void HandleInput(byte[] keyState, ref SDL.SDL_Rect rect, ref PlayerState currentState, ref bool facingLeft, ref bool isJumping, ref float jumpSpeed, float deltaTime, CollisionManager collisionManager)
         {

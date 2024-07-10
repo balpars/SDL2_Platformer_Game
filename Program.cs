@@ -9,7 +9,7 @@ namespace Platformer_Game
         {
             try
             {
-                var (window, renderer, tileLoader, mapData, player, camera, collisionManager) = Initializer.Init();
+                var (window, renderer, tileLoader, mapData, player, camera, collisionManager, soundManager) = Initializer.Init();
 
                 // Main loop
                 bool running = true;
@@ -66,6 +66,7 @@ namespace Platformer_Game
                 }
 
                 Console.WriteLine("Cleaning up...");
+                soundManager.Cleanup();
                 SDL.SDL_DestroyRenderer(renderer);
                 SDL.SDL_DestroyWindow(window);
                 SDL.SDL_Quit();

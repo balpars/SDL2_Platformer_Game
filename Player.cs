@@ -14,6 +14,7 @@ namespace Platformer_Game
         private bool animationEnded;
         private bool isJumping;
         private float jumpSpeed;
+        private SoundManager soundManager;
 
         public Vector2 Position => new Vector2(rect.x, rect.y);
 
@@ -23,7 +24,7 @@ namespace Platformer_Game
             internal set => rect = value;
         }
 
-        public Player(int x, int y, int width, int height, IntPtr renderer)
+        public Player(int x, int y, int width, int height, IntPtr renderer, SoundManager soundManager)
         {
             rect = new SDL.SDL_Rect { x = x, y = y, w = width, h = height };
             this.renderer = renderer;
@@ -34,6 +35,7 @@ namespace Platformer_Game
             animationEnded = false;
             isJumping = false;
             jumpSpeed = 0f;
+            this.soundManager = soundManager;
         }
 
         public void LoadContent()
@@ -44,9 +46,32 @@ namespace Platformer_Game
         public void Update(float deltaTime, byte[] keyState, CollisionManager collisionManager)
         {
             animationEnded = false;
+            var previousState = currentState;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
             movementManager.HandleInput(keyState, ref rect, ref currentState, ref facingLeft, ref isJumping, ref jumpSpeed, deltaTime, collisionManager);
             movementManager.UpdatePosition(deltaTime, ref rect, ref currentState, ref isJumping, ref jumpSpeed, facingLeft, collisionManager);
+
+            if (currentState == PlayerState.Running && previousState != PlayerState.Running)
+            {
+                soundManager.PlaySound("walk");
+            }
+            else if (currentState == PlayerState.Idle && previousState == PlayerState.Running)
+            {
+                soundManager.StopSound("walk");
+            }
+
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_X] == 1 && previousState != PlayerState.Attacking)
+            {
+                soundManager.PlaySound("sword");
+            }
+            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_C] == 1 && previousState != PlayerState.Attacking2)
+            {
+                soundManager.PlaySound("sword");
+            }
+            else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_V] == 1 && previousState != PlayerState.AttackCombo)
+            {
+                soundManager.PlaySound("sword");
+            }
 
             if (animationEnded && (currentState == PlayerState.Attacking || currentState == PlayerState.Attacking2 || currentState == PlayerState.AttackCombo || currentState == PlayerState.Rolling || currentState == PlayerState.Sliding || currentState == PlayerState.Crouching || currentState == PlayerState.CrouchWalking))
             {
