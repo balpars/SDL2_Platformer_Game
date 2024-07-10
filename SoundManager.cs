@@ -50,6 +50,7 @@ namespace Platformer_Game
             {
                 Mix_HaltChannel(channels[soundName]);
                 channels.Remove(soundName);
+             
             }
         }
 

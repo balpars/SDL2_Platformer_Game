@@ -1,4 +1,5 @@
-﻿using SDL2;
+﻿
+using SDL2;
 
 namespace Platformer_Game
 {
@@ -100,6 +101,7 @@ namespace Platformer_Game
         private void MoveHorizontally(float amount, ref SDL.SDL_Rect rect, CollisionManager collisionManager)
         {
             SDL.SDL_Rect newRect = rect;
+            newRect.w = newRect.w / 3;
             newRect.x += (int)amount;
 
             if (!collisionManager.CheckCollisions(newRect))
@@ -110,28 +112,31 @@ namespace Platformer_Game
 
         public void UpdatePosition(float deltaTime, ref SDL.SDL_Rect rect, ref PlayerState currentState, ref bool isJumping, ref float jumpSpeed, bool facingLeft, CollisionManager collisionManager)
         {
+            
+            
+            SDL.SDL_Rect newRect = rect;
+            newRect.w = newRect.w / 3;
+            newRect.y += (int)(jumpSpeed * deltaTime * 100);
+            jumpSpeed += Gravity * 100 * deltaTime;
+
             if (isJumping)
             {
-                SDL.SDL_Rect newRect = rect;
-                newRect.y += (int)(jumpSpeed * deltaTime * 100);
-                jumpSpeed += Gravity * 100 * deltaTime;
-
                 if (jumpSpeed > 0)
                 {
                     currentState = PlayerState.JumpFall;
                 }
-
-                if (!collisionManager.CheckCollisions(newRect))
-                {
-                    rect.y = newRect.y;
-                }
-                else
-                {
-                    isJumping = false;
-                    jumpSpeed = 0;
-                    currentState = PlayerState.Idle;
-                }
             }
+
+            if (!collisionManager.CheckCollisions(newRect))
+            {
+                rect.y = newRect.y;
+            }
+            else
+            {
+                isJumping = false;
+                jumpSpeed = 0;
+            }
+            
 
             if (currentState == PlayerState.Rolling)
             {
