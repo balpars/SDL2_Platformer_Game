@@ -1,5 +1,4 @@
-﻿
-using SDL2;
+﻿using SDL2;
 
 namespace Platformer_Game
 {
@@ -11,10 +10,18 @@ namespace Platformer_Game
         private const float RollSpeed = 2f; // Yuvarlanma hızı
         private const float SlideSpeed = 2f; // Kayma hızı
 
+        private float jumpCooldownTimer = 0.0f; // Timer to track jump cooldown
+
         public void HandleInput(byte[] keyState, ref SDL.SDL_Rect rect, ref PlayerState currentState, ref bool facingLeft, ref bool isJumping, ref float jumpSpeed, float deltaTime, CollisionManager collisionManager)
         {
             bool movingHorizontally = false;
             bool crouching = keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_DOWN] == 1;
+
+            // Update the jump cooldown timer
+            if (jumpCooldownTimer > 0)
+            {
+                jumpCooldownTimer -= deltaTime;
+            }
 
             if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_LEFT] == 1)
             {
@@ -35,11 +42,12 @@ namespace Platformer_Game
                 }
             }
 
-            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_UP] == 1 && !isJumping)
+            if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_UP] == 1 && !isJumping && jumpCooldownTimer <= 0)
             {
                 isJumping = true;
                 jumpSpeed = -JumpSpeed;
                 currentState = PlayerState.Jumping;
+                jumpCooldownTimer = 0.2f; // Set cooldown to 1 second
             }
 
             if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_X] == 1 && currentState != PlayerState.Attacking && currentState != PlayerState.Attacking2 && currentState != PlayerState.AttackCombo)
@@ -101,7 +109,6 @@ namespace Platformer_Game
         private void MoveHorizontally(float amount, ref SDL.SDL_Rect rect, CollisionManager collisionManager)
         {
             SDL.SDL_Rect newRect = rect;
-            newRect.w = newRect.w / 3;
             newRect.x += (int)amount;
 
             if (!collisionManager.CheckCollisions(newRect))
@@ -112,15 +119,13 @@ namespace Platformer_Game
 
         public void UpdatePosition(float deltaTime, ref SDL.SDL_Rect rect, ref PlayerState currentState, ref bool isJumping, ref float jumpSpeed, bool facingLeft, CollisionManager collisionManager)
         {
-            
-            
             SDL.SDL_Rect newRect = rect;
-            newRect.w = newRect.w / 3;
             newRect.y += (int)(jumpSpeed * deltaTime * 100);
             jumpSpeed += Gravity * 100 * deltaTime;
 
             if (isJumping)
             {
+                Console.WriteLine($"jumpSpeed = {jumpSpeed}");
                 if (jumpSpeed > 0)
                 {
                     currentState = PlayerState.JumpFall;
@@ -136,7 +141,6 @@ namespace Platformer_Game
                 isJumping = false;
                 jumpSpeed = 0;
             }
-            
 
             if (currentState == PlayerState.Rolling)
             {

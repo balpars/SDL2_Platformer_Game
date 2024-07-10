@@ -16,6 +16,8 @@ namespace Platformer_Game
         private float jumpSpeed;
         private SoundManager soundManager;
 
+        private float idleDelayTimer = 0.0f; // Timer to track delay
+
         public Vector2 Position => new Vector2(rect.x, rect.y);
 
         public SDL.SDL_Rect Rect
@@ -73,17 +75,23 @@ namespace Platformer_Game
                 soundManager.PlaySound("sword");
             }
 
-            if (animationEnded && (currentState == PlayerState.Attacking || currentState == PlayerState.Attacking2 || currentState == PlayerState.AttackCombo || currentState == PlayerState.Rolling || currentState == PlayerState.Sliding || currentState == PlayerState.Crouching || currentState == PlayerState.CrouchWalking))
+            if (animationEnded && (currentState == PlayerState.Attacking || currentState == PlayerState.Attacking2 || currentState == PlayerState.AttackCombo || currentState == PlayerState.Rolling || currentState == PlayerState.Sliding))
             {
                 currentState = PlayerState.Idle;
             }
 
-            DebugPosition();
+            //DebugPosition();
+            //DebugAnimation();
+        }
+
+        private void DebugAnimation()
+        {
+            Console.WriteLine($"Player State: {currentState}");
         }
 
         private void DebugPosition()
         {
-            Console.WriteLine($"Player Position: X={rect.x}, Y={rect.y}");
+            //Console.WriteLine($"Player Position: X={rect.x}, Y={rect.y}");
         }
 
         public void Render(Camera camera)
