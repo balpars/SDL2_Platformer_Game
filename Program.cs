@@ -29,10 +29,6 @@ namespace Platformer_Game
                         {
                             mainMenu.HandleInput(e, ref running, ref startGame);
                         }
-                        else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_ESCAPE)
-                        {
-                            running = false;
-                        }
                     }
 
                     if (!startGame)
@@ -57,10 +53,6 @@ namespace Platformer_Game
                         while (SDL.SDL_PollEvent(out e) != 0)
                         {
                             if (e.type == SDL.SDL_EventType.SDL_QUIT)
-                            {
-                                running = false;
-                            }
-                            else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_ESCAPE)
                             {
                                 running = false;
                             }

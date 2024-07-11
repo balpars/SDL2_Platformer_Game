@@ -73,6 +73,9 @@ namespace Platformer_Game
                 throw new Exception($"Failed to create texture: {SDL.SDL_GetError()}");
             }
 
+            // Set the blend mode for transparency
+            SDL.SDL_SetTextureBlendMode(texture, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
+
             return texture;
         }
 
@@ -80,6 +83,9 @@ namespace Platformer_Game
         {
             IntPtr tileTexture = SDL.SDL_CreateTexture(renderer, SDL.SDL_PIXELFORMAT_RGBA8888,
                 (int)SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, TileWidth, TileHeight);
+
+            // Set the blend mode for transparency
+            SDL.SDL_SetTextureBlendMode(tileTexture, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
 
             SDL.SDL_SetRenderTarget(renderer, tileTexture);
             SDL.SDL_RenderCopy(renderer, tilesetTexture, ref tileRect, IntPtr.Zero);
@@ -95,38 +101,21 @@ namespace Platformer_Game
                 int mapWidth = mapData.width;
                 int mapHeight = mapData.height;
 
+                // Render the BackgroundLayer first
                 foreach (var layer in mapData.layers)
                 {
-                    if (layer.type != "tilelayer")
+                    if (layer.type == "tilelayer" && layer.name == "BackgroundLayer")
                     {
-                        continue;
+                        RenderLayer(layer, mapWidth, mapHeight, renderer, camera);
                     }
+                }
 
-                    int[] tileIds = layer.data.ToObject<int[]>();
-
-                    for (int y = 0; y < mapHeight; y++)
+                // Render other layers except BackgroundLayer
+                foreach (var layer in mapData.layers)
+                {
+                    if (layer.type == "tilelayer" && layer.name != "BackgroundLayer")
                     {
-                        for (int x = 0; x < mapWidth; x++)
-                        {
-                            int tileId = tileIds[y * mapWidth + x];
-
-                            if (tileId == 0 || !Tileset.ContainsKey(tileId))
-                            {
-                                continue;
-                            }
-
-                            SDL.SDL_Rect destRect = new SDL.SDL_Rect
-                            {
-                                x = x * TileWidth,
-                                y = y * TileHeight,
-                                w = TileWidth,
-                                h = TileHeight
-                            };
-
-                            SDL.SDL_Rect renderRect = camera.GetRenderRect(destRect);
-
-                            SDL.SDL_RenderCopy(renderer, Tileset[tileId], IntPtr.Zero, ref renderRect);
-                        }
+                        RenderLayer(layer, mapWidth, mapHeight, renderer, camera);
                     }
                 }
             }
@@ -136,6 +125,35 @@ namespace Platformer_Game
             }
         }
 
+        private void RenderLayer(dynamic layer, int mapWidth, int mapHeight, IntPtr renderer, Camera camera)
+        {
+            int[] tileIds = layer.data.ToObject<int[]>();
+
+            for (int y = 0; y < mapHeight; y++)
+            {
+                for (int x = 0; x < mapWidth; x++)
+                {
+                    int tileId = tileIds[y * mapWidth + x];
+
+                    if (tileId == 0 || !Tileset.ContainsKey(tileId))
+                    {
+                        continue;
+                    }
+
+                    SDL.SDL_Rect destRect = new SDL.SDL_Rect
+                    {
+                        x = x * TileWidth,
+                        y = y * TileHeight,
+                        w = TileWidth,
+                        h = TileHeight
+                    };
+
+                    SDL.SDL_Rect renderRect = camera.GetRenderRect(destRect);
+
+                    SDL.SDL_RenderCopy(renderer, Tileset[tileId], IntPtr.Zero, ref renderRect);
+                }
+            }
+        }
 
         public void GenerateCollisionRectangles(dynamic mapData)
         {

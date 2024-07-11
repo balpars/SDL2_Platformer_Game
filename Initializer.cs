@@ -32,7 +32,7 @@ namespace Platformer_Game
                 throw new Exception($"Failed to load font: {SDL.SDL_GetError()}");
             }
 
-            IntPtr window = SDL.SDL_CreateWindow("Tile Loader",
+            IntPtr window = SDL.SDL_CreateWindow("Knight Offline",
                 SDL.SDL_WINDOWPOS_CENTERED, SDL.SDL_WINDOWPOS_CENTERED, 800, 600, SDL.SDL_WindowFlags.SDL_WINDOW_SHOWN);
 
             if (window == IntPtr.Zero)
