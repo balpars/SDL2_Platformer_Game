@@ -15,6 +15,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Assets\Fonts\GreenBerry.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Assets\map.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

@@ -9,25 +9,15 @@ namespace Platformer_Game
         {
             try
             {
-                var (window, renderer, tileLoader, mapData, player, camera, collisionManager, soundManager) = Initializer.Init();
+                var (window, renderer, tileLoader, mapData, player, camera, collisionManager, soundManager, font) = Initializer.Init();
 
-                // Main loop
                 bool running = true;
+                bool startGame = false;
 
-                // Fixed timestep variables
-                const float targetFps = 60.0f;
-                const float fixedDeltaTime = 1.0f / targetFps;
-                float accumulator = 0.0f;
-                uint previousTime = SDL.SDL_GetTicks();
+                MainMenu mainMenu = new MainMenu(renderer, font);
 
-                Console.WriteLine("Entering main loop...");
                 while (running)
                 {
-                    uint currentTime = SDL.SDL_GetTicks();
-                    float deltaTime = (currentTime - previousTime) / 1000.0f;
-                    previousTime = currentTime;
-                    accumulator += deltaTime;
-
                     SDL.SDL_Event e;
                     while (SDL.SDL_PollEvent(out e) != 0)
                     {
@@ -35,41 +25,74 @@ namespace Platformer_Game
                         {
                             running = false;
                         }
+                        else if (!startGame)
+                        {
+                            mainMenu.HandleInput(e, ref running, ref startGame);
+                        }
+                        else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_ESCAPE)
+                        {
+                            running = false;
+                        }
                     }
 
-                    // Process fixed update steps
-                    while (accumulator >= fixedDeltaTime)
+                    if (!startGame)
                     {
-                        // Get key states
-                        IntPtr keyStatePtr = SDL.SDL_GetKeyboardState(out int numKeys);
-                        byte[] keyState = new byte[numKeys];
-                        System.Runtime.InteropServices.Marshal.Copy(keyStatePtr, keyState, 0, numKeys);
-
-                        // Update game logic here
-                        player.Update(fixedDeltaTime, keyState, collisionManager);
-                        camera.Update(fixedDeltaTime);
-
-                        accumulator -= fixedDeltaTime;
+                        mainMenu.Render();
+                        continue;
                     }
 
-                    // Set background color to black
-                    SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-                    SDL.SDL_RenderClear(renderer);
+                    const float targetFps = 60.0f;
+                    const float fixedDeltaTime = 1.0f / targetFps;
+                    float accumulator = 0.0f;
+                    uint previousTime = SDL.SDL_GetTicks();
 
-                    // Render the map with camera offset
-                    tileLoader.RenderMap(mapData, renderer, camera);
+                    Console.WriteLine("Entering main loop...");
+                    while (running)
+                    {
+                        uint currentTime = SDL.SDL_GetTicks();
+                        float deltaTime = (currentTime - previousTime) / 1000.0f;
+                        previousTime = currentTime;
+                        accumulator += deltaTime;
 
-                    // Render the player with camera offset
-                    player.Render(camera);
+                        while (SDL.SDL_PollEvent(out e) != 0)
+                        {
+                            if (e.type == SDL.SDL_EventType.SDL_QUIT)
+                            {
+                                running = false;
+                            }
+                            else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_ESCAPE)
+                            {
+                                running = false;
+                            }
+                        }
 
-                    SDL.SDL_RenderPresent(renderer);
+                        while (accumulator >= fixedDeltaTime)
+                        {
+                            IntPtr keyStatePtr = SDL.SDL_GetKeyboardState(out int numKeys);
+                            byte[] keyState = new byte[numKeys];
+                            System.Runtime.InteropServices.Marshal.Copy(keyStatePtr, keyState, 0, numKeys);
+
+                            player.Update(fixedDeltaTime, keyState, collisionManager);
+                            camera.Update(fixedDeltaTime);
+
+                            accumulator -= fixedDeltaTime;
+                        }
+
+                        SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                        SDL.SDL_RenderClear(renderer);
+
+                        tileLoader.RenderMap(mapData, renderer, camera);
+                        player.Render(camera);
+
+                        SDL.SDL_RenderPresent(renderer);
+                    }
+
+                    Console.WriteLine("Cleaning up...");
+                    soundManager.Cleanup();
+                    SDL.SDL_DestroyRenderer(renderer);
+                    SDL.SDL_DestroyWindow(window);
+                    SDL.SDL_Quit();
                 }
-
-                Console.WriteLine("Cleaning up...");
-                soundManager.Cleanup();
-                SDL.SDL_DestroyRenderer(renderer);
-                SDL.SDL_DestroyWindow(window);
-                SDL.SDL_Quit();
             }
             catch (Exception ex)
             {

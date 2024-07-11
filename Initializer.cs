@@ -1,14 +1,15 @@
-﻿using System;
+﻿using SDL2;
+using System;
 using System.IO;
 using Newtonsoft.Json;
-using SDL2;
 using static SDL2.SDL_mixer;
+using static SDL2.SDL_ttf;
 
 namespace Platformer_Game
 {
     public static class Initializer
     {
-        public static (IntPtr window, IntPtr renderer, TileLoader tileLoader, dynamic mapData, Player player, Camera camera, CollisionManager collisionManager, SoundManager soundManager) Init()
+        public static (IntPtr window, IntPtr renderer, TileLoader tileLoader, dynamic mapData, Player player, Camera camera, CollisionManager collisionManager, SoundManager soundManager, IntPtr font) Init()
         {
             if (SDL.SDL_Init(SDL.SDL_INIT_VIDEO | SDL.SDL_INIT_AUDIO) < 0)
             {
@@ -18,6 +19,17 @@ namespace Platformer_Game
             if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
             {
                 throw new Exception($"Failed to initialize SDL_mixer: {SDL.SDL_GetError()}");
+            }
+
+            if (TTF_Init() < 0)
+            {
+                throw new Exception($"Failed to initialize SDL_ttf: {SDL.SDL_GetError()}");
+            }
+
+            IntPtr font = TTF_OpenFont("Assets/Fonts/GreenBerry.ttf", 24);
+            if (font == IntPtr.Zero)
+            {
+                throw new Exception($"Failed to load font: {SDL.SDL_GetError()}");
             }
 
             IntPtr window = SDL.SDL_CreateWindow("Tile Loader",
@@ -40,41 +52,36 @@ namespace Platformer_Game
 
             TileLoader tileLoader = new TileLoader();
 
-            // Load the map file
             string mapFilePath = "Assets/Map/demo_map.json";
             var mapJson = File.ReadAllText(mapFilePath);
             dynamic mapData = JsonConvert.DeserializeObject(mapJson);
 
-            // Load the tileset
             string tilesetImagePath = "Assets/Map/world_tileset.png";
             int tileWidth = mapData.tilewidth;
             int tileHeight = mapData.tileheight;
 
             tileLoader.LoadTileset(tileWidth, tileHeight, tilesetImagePath, renderer);
 
-            // Initialize player
             var playerSpawnPoint = tileLoader.GetPlayerSpawnPoint(mapData);
             int spawnX = (int)playerSpawnPoint.Item1;
-            int spawnY = (int)playerSpawnPoint.Item2-25 ; // Adjust the Y coordinate to spawn the player higher
+            int spawnY = (int)playerSpawnPoint.Item2 - 25;
 
             SoundManager soundManager = new SoundManager();
             soundManager.LoadContent();
 
             Player player = new Player(spawnX, spawnY, 120, 80, renderer, soundManager);
 
-            // Initialize camera
-            Camera camera = new Camera(800, 600); // Assuming the screen size is 800x600
+            Camera camera = new Camera(800, 600);
             camera.SetTarget(player);
-            camera.Smoothing = 2.0f; // Set to 1 for immediate follow
-            camera.Zoom = 2.0f; // Zoom factor, adjust as needed
+            camera.Smoothing = 2.0f;
+            camera.Zoom = 2.0f;
 
-            // Initialize collision manager
             tileLoader.GenerateCollisionRectangles(mapData);
             CollisionManager collisionManager = new CollisionManager(tileLoader.CollisionRectangles);
 
             player.LoadContent();
 
-            return (window, renderer, tileLoader, mapData, player, camera, collisionManager, soundManager);
+            return (window, renderer, tileLoader, mapData, player, camera, collisionManager, soundManager, font);
         }
     }
 }
