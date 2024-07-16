@@ -1,18 +1,19 @@
-﻿    namespace Platformer_Game
+﻿namespace Platformer_Game
+{
+    public enum PlayerState
     {
-        public enum PlayerState
-        {
-            Idle,
-            Running,
-            Jumping,
-            JumpFall,
-            Falling,
-            Attacking,
-            Attacking2,
-            AttackCombo,
-            Crouching,
-            CrouchWalking,
-            Rolling,
-            Sliding
-        }
+        Idle,
+        Running,
+        Jumping,
+        JumpFall,
+        Falling,
+        Attacking,
+        Attacking2,
+        AttackCombo,
+        Crouching,
+        CrouchWalking,
+        Rolling,
+        Sliding,
+        Climbing // Yeni eklenen durum
     }
+}

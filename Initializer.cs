@@ -1,7 +1,9 @@
-﻿using SDL2;
+﻿// Initializer.cs
+using SDL2;
 using System;
 using System.IO;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using static SDL2.SDL_mixer;
 using static SDL2.SDL_ttf;
 
@@ -69,7 +71,7 @@ namespace Platformer_Game
             SoundManager soundManager = new SoundManager();
             soundManager.LoadContent();
 
-            Player player = new Player(spawnX, spawnY, 120, 80, renderer, soundManager);
+            Player player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager); // Güncellenen boyutlar
 
             Camera camera = new Camera(800, 600);
             camera.SetTarget(player);
@@ -77,7 +79,10 @@ namespace Platformer_Game
             camera.Zoom = 2.0f;
 
             tileLoader.GenerateCollisionRectangles(mapData);
-            CollisionManager collisionManager = new CollisionManager(tileLoader.CollisionRectangles);
+            List<SDL.SDL_Rect> collisionRectangles = tileLoader.CollisionRectangles;
+            List<SDL.SDL_Rect> climbingRectangles = tileLoader.ClimbingRectangles;
+
+            CollisionManager collisionManager = new CollisionManager(collisionRectangles, climbingRectangles);
 
             player.LoadContent();
 

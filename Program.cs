@@ -1,4 +1,5 @@
-﻿using SDL2;
+﻿// Program.cs
+using SDL2;
 using System;
 
 namespace Platformer_Game
@@ -13,6 +14,7 @@ namespace Platformer_Game
 
                 bool running = true;
                 bool startGame = false;
+                bool debugMode = false; // Debug modu
 
                 MainMenu mainMenu = new MainMenu(renderer, font);
 
@@ -28,6 +30,10 @@ namespace Platformer_Game
                         else if (!startGame)
                         {
                             mainMenu.HandleInput(e, ref running, ref startGame);
+                        }
+                        else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
+                        {
+                            debugMode = !debugMode; // P tuşuna basıldığında debug modunu değiştir
                         }
                     }
 
@@ -56,6 +62,10 @@ namespace Platformer_Game
                             {
                                 running = false;
                             }
+                            else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
+                            {
+                                debugMode = !debugMode; // P tuşuna basıldığında debug modunu değiştir
+                            }
                         }
 
                         while (accumulator >= fixedDeltaTime)
@@ -75,6 +85,13 @@ namespace Platformer_Game
 
                         tileLoader.RenderMap(mapData, renderer, camera);
                         player.Render(camera);
+
+                        if (debugMode)
+                        {
+                            tileLoader.RenderDebug(renderer, camera);
+                            collisionManager.RenderDebug(renderer, camera);
+                            player.RenderDebug(renderer, camera);
+                        }
 
                         SDL.SDL_RenderPresent(renderer);
                     }

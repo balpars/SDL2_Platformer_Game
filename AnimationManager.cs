@@ -1,4 +1,5 @@
-﻿using System;
+﻿// AnimationManager.cs
+using System;
 using System.Collections.Generic;
 using SDL2;
 
@@ -11,6 +12,14 @@ namespace Platformer_Game
         private float animationSpeed = 0.1f;
         private float animationTimer;
         private int currentFrame;
+
+        // Karakterin orijinal frame boyutları
+        private const int OriginalFrameWidth = 120;
+        private const int OriginalFrameHeight = 80;
+
+        // Karakterin ölçeklenmiş boyutları
+        private const int FrameWidth = 120;
+        private const int FrameHeight = 80;
 
         public AnimationManager()
         {
@@ -33,6 +42,7 @@ namespace Platformer_Game
             spritesheets[PlayerState.CrouchWalking] = LoadTexture(renderer, "Assets/_CrouchWalk.png");
             spritesheets[PlayerState.Rolling] = LoadTexture(renderer, "Assets/_Roll.png");
             spritesheets[PlayerState.Sliding] = LoadTexture(renderer, "Assets/_SlideFull.png");
+            spritesheets[PlayerState.Climbing] = LoadTexture(renderer, "Assets/_WallClimbNoMovement.png"); // Yeni tırmanma animasyonu
 
             CalculateFrameCounts();
         }
@@ -42,7 +52,7 @@ namespace Platformer_Game
             foreach (var state in spritesheets.Keys)
             {
                 SDL.SDL_QueryTexture(spritesheets[state], out _, out _, out int textureWidth, out _);
-                frameCounts[state] = textureWidth / 120; // FrameWidth
+                frameCounts[state] = textureWidth / OriginalFrameWidth; // Her bir resmin orijinal genişliği
                 Console.WriteLine($"{state} spritesheet has {frameCounts[state]} frames.");
             }
         }
@@ -86,6 +96,28 @@ namespace Platformer_Game
         public IntPtr GetCurrentTexture(PlayerState state)
         {
             return spritesheets[state];
+        }
+
+        public SDL.SDL_Rect GetSourceRect()
+        {
+            return new SDL.SDL_Rect
+            {
+                x = currentFrame * OriginalFrameWidth,
+                y = 0,
+                w = OriginalFrameWidth,
+                h = OriginalFrameHeight
+            };
+        }
+
+        public SDL.SDL_Rect GetDestinationRect(SDL.SDL_Rect destRect)
+        {
+            return new SDL.SDL_Rect
+            {
+                x = destRect.x-45,
+                y = destRect.y-40,
+                w = FrameWidth,
+                h = FrameHeight
+            };
         }
     }
 }

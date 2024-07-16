@@ -1,4 +1,5 @@
-﻿using SDL2;
+﻿// TileLoader.cs
+using SDL2;
 using System;
 using System.Collections.Generic;
 
@@ -10,11 +11,13 @@ namespace Platformer_Game
         public int TileHeight { get; private set; }
         public Dictionary<int, IntPtr> Tileset { get; private set; }
         public List<SDL.SDL_Rect> CollisionRectangles { get; private set; }
+        public List<SDL.SDL_Rect> ClimbingRectangles { get; private set; }
 
         public TileLoader()
         {
             Tileset = new Dictionary<int, IntPtr>();
             CollisionRectangles = new List<SDL.SDL_Rect>();
+            ClimbingRectangles = new List<SDL.SDL_Rect>();
         }
 
         public void LoadTileset(int tileWidth, int tileHeight, string tilesetImagePath, IntPtr renderer)
@@ -194,11 +197,55 @@ namespace Platformer_Game
                             }
                         }
                     }
+                    else if (layerType == "tilelayer" && layerName == "ClimbingLayer")
+                    {
+                        int[] tileIds = layer.data.ToObject<int[]>();
+
+                        for (int y = 0; y < mapHeight; y++)
+                        {
+                            for (int x = 0; x < mapWidth; x++)
+                            {
+                                int tileId = tileIds[y * mapWidth + x];
+
+                                if (tileId == 0 || !Tileset.ContainsKey(tileId))
+                                {
+                                    continue;
+                                }
+
+                                SDL.SDL_Rect destRect = new SDL.SDL_Rect
+                                {
+                                    x = x * TileWidth,
+                                    y = y * TileHeight,
+                                    w = TileWidth,
+                                    h = TileHeight
+                                };
+
+                                ClimbingRectangles.Add(destRect); // Yeni eklenen tırmanma kareleri
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error generating collision rectangles: {ex.Message}");
+            }
+        }
+
+        public void RenderDebug(IntPtr renderer, Camera camera)
+        {
+            SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Siyah renk
+
+            foreach (var rect in CollisionRectangles)
+            {
+                SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
+                SDL.SDL_RenderDrawRect(renderer, ref renderRect);
+            }
+
+            foreach (var rect in ClimbingRectangles)
+            {
+                SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
+                SDL.SDL_RenderDrawRect(renderer, ref renderRect);
             }
         }
 

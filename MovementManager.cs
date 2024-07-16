@@ -1,4 +1,5 @@
-﻿using SDL2;
+﻿// MovementManager.cs
+using SDL2;
 
 namespace Platformer_Game
 {
@@ -9,10 +10,11 @@ namespace Platformer_Game
         private const float MoveSpeed = 2f; // Hareket hızı
         private const float RollSpeed = 2f; // Yuvarlanma hızı
         private const float SlideSpeed = 2f; // Kayma hızı
+        private const float ClimbSpeed = 1f; // Tırmanma hızı
 
         private float jumpCooldownTimer = 0.0f; // Timer to track jump cooldown
 
-        public void HandleInput(byte[] keyState, ref SDL.SDL_Rect rect, ref PlayerState currentState, ref bool facingLeft, ref bool isJumping, ref float jumpSpeed, float deltaTime, CollisionManager collisionManager)
+        public void HandleInput(byte[] keyState, ref SDL.SDL_Rect rect, ref PlayerState currentState, ref bool facingLeft, ref bool isJumping, ref float jumpSpeed, float deltaTime, CollisionManager collisionManager, AnimationManager animationManager)
         {
             bool movingHorizontally = false;
             bool crouching = keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_DOWN] == 1;
@@ -21,6 +23,51 @@ namespace Platformer_Game
             if (jumpCooldownTimer > 0)
             {
                 jumpCooldownTimer -= deltaTime;
+            }
+
+            if (currentState == PlayerState.Climbing)
+            {
+                bool moved = false;
+
+                if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_UP] == 1)
+                {
+                    MoveVertically(-ClimbSpeed * deltaTime * 100, ref rect);
+                    moved = true;
+                }
+                else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_DOWN] == 1)
+                {
+                    MoveVertically(ClimbSpeed * deltaTime * 100, ref rect);
+                    moved = true;
+                }
+
+                if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_LEFT] == 1)
+                {
+                    facingLeft = true;
+                    isJumping = true;
+                    jumpSpeed = -JumpSpeed;
+                    MoveHorizontally(-MoveSpeed * deltaTime * 100, ref rect, collisionManager);
+                    currentState = PlayerState.Idle;
+                    animationManager.ResetAnimation();
+                    return;
+                }
+                else if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_RIGHT] == 1)
+                {
+                    facingLeft = false;
+                    isJumping = true;
+                    jumpSpeed = -JumpSpeed;
+                    MoveHorizontally(MoveSpeed * deltaTime * 100, ref rect, collisionManager);
+                    currentState = PlayerState.Idle;
+                    animationManager.ResetAnimation();
+                    return;
+                }
+
+                if (!moved)
+                {
+                    // Yukarı veya aşağı tuşlarına basılmadığında karakter olduğu yerde kalsın
+                    currentState = PlayerState.Climbing;
+                }
+
+                return;
             }
 
             if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_LEFT] == 1)
@@ -117,24 +164,47 @@ namespace Platformer_Game
             }
         }
 
+        private void MoveVertically(float amount, ref SDL.SDL_Rect rect)
+        {
+            rect.y += (int)amount;
+        }
+
         public void UpdatePosition(float deltaTime, ref SDL.SDL_Rect rect, ref PlayerState currentState, ref bool isJumping, ref float jumpSpeed, bool facingLeft, CollisionManager collisionManager)
         {
-            SDL.SDL_Rect newRect = rect;
-            newRect.y += (int)(jumpSpeed * deltaTime * 100);
+            if (currentState == PlayerState.Climbing)
+            {
+                // Tırmanma durumunda çarpışma kontrolü yapalım
+                SDL.SDL_Rect newRect = rect;
+                newRect.y -= (int)(ClimbSpeed * deltaTime * 100);
+                if (!collisionManager.CheckClimbingLayer(newRect))
+                {
+                    currentState = PlayerState.Idle;
+                    facingLeft = true;
+                    isJumping = true;
+                    jumpSpeed = -JumpSpeed;
+                }
+                else
+                {
+                    rect.y = newRect.y;
+                }
+                return;
+            }
+
+            SDL.SDL_Rect newRectJumping = rect;
+            newRectJumping.y += (int)(jumpSpeed * deltaTime * 100);
             jumpSpeed += Gravity * 100 * deltaTime;
 
             if (isJumping)
             {
-                //Console.WriteLine($"jumpSpeed = {jumpSpeed}");
                 if (jumpSpeed > 0)
                 {
                     currentState = PlayerState.JumpFall;
                 }
             }
 
-            if (!collisionManager.CheckCollisions(newRect))
+            if (!collisionManager.CheckCollisions(newRectJumping))
             {
-                rect.y = newRect.y;
+                rect.y = newRectJumping.y;
             }
             else
             {

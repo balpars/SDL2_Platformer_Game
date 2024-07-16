@@ -1,4 +1,5 @@
-﻿using SDL2;
+﻿// Player.cs
+using SDL2;
 using System.Numerics;
 
 namespace Platformer_Game
@@ -24,9 +25,13 @@ namespace Platformer_Game
             internal set => rect = value;
         }
 
+        // Karakterin boyutlarını burada tanımlayın
+        private const int CharacterWidth = 20; // Güncellenen genişlik
+        private const int CharacterHeight = 40; // Güncellenen yükseklik
+
         public Player(int x, int y, int width, int height, IntPtr renderer, SoundManager soundManager)
         {
-            rect = new SDL.SDL_Rect { x = x, y = y, w = width, h = height };
+            rect = new SDL.SDL_Rect { x = x, y = y, w = CharacterWidth, h = CharacterHeight }; // Güncellenen boyutlar
             this.renderer = renderer;
             animationManager = new AnimationManager();
             movementManager = new MovementManager();
@@ -51,7 +56,7 @@ namespace Platformer_Game
             var previousState = currentState;
 
             // Always handle movement input
-            movementManager.HandleInput(keyState, ref rect, ref currentState, ref facingLeft, ref isJumping, ref jumpSpeed, deltaTime, collisionManager);
+            movementManager.HandleInput(keyState, ref rect, ref currentState, ref facingLeft, ref isJumping, ref jumpSpeed, deltaTime, collisionManager, animationManager);
             movementManager.UpdatePosition(deltaTime, ref rect, ref currentState, ref isJumping, ref jumpSpeed, facingLeft, collisionManager);
 
             // Handle special state transitions only if the current animation has ended
@@ -71,6 +76,12 @@ namespace Platformer_Game
 
             // Play sound based on state changes
             HandleSoundEffects(keyState, previousState);
+
+            // ClimbingLayer kontrolü
+            if (collisionManager.CheckClimbingLayer(rect))
+            {
+                currentState = PlayerState.Climbing;
+            }
         }
 
         private void HandleSpecialStateTransitions(byte[] keyState)
@@ -133,27 +144,21 @@ namespace Platformer_Game
         public void Render(Camera camera)
         {
             IntPtr texture = animationManager.GetCurrentTexture(currentState);
-            SDL.SDL_QueryTexture(texture, out _, out _, out int textureWidth, out _);
-
-            SDL.SDL_Rect srcRect = new SDL.SDL_Rect
-            {
-                x = animationManager.GetCurrentFrame() * rect.w,
-                y = 0,
-                w = rect.w,
-                h = rect.h
-            };
-            SDL.SDL_Rect dstRect = new SDL.SDL_Rect
-            {
-                x = rect.x,
-                y = rect.y,
-                w = rect.w,
-                h = rect.h
-            };
+            SDL.SDL_Rect srcRect = animationManager.GetSourceRect();
+            SDL.SDL_Rect dstRect = animationManager.GetDestinationRect(rect);
 
             dstRect = camera.GetRenderRect(dstRect);
 
             SDL.SDL_RendererFlip flip = facingLeft ? SDL.SDL_RendererFlip.SDL_FLIP_HORIZONTAL : SDL.SDL_RendererFlip.SDL_FLIP_NONE;
             SDL.SDL_RenderCopyEx(renderer, texture, ref srcRect, ref dstRect, 0, IntPtr.Zero, flip);
+        }
+
+        public void RenderDebug(IntPtr renderer, Camera camera)
+        {
+            SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Siyah renk
+
+            SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
+            SDL.SDL_RenderDrawRect(renderer, ref renderRect);
         }
     }
 }
