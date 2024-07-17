@@ -1,5 +1,4 @@
-﻿// TileLoader.cs
-using SDL2;
+﻿using SDL2;
 using System;
 using System.Collections.Generic;
 
@@ -12,12 +11,16 @@ namespace Platformer_Game
         public Dictionary<int, IntPtr> Tileset { get; private set; }
         public List<SDL.SDL_Rect> CollisionRectangles { get; private set; }
         public List<SDL.SDL_Rect> ClimbingRectangles { get; private set; }
+        public List<SDL.SDL_Rect> CoinRectangles { get; private set; }
+        public HashSet<(int x, int y)> CollectedCoinPositions { get; private set; } // Track collected coins
 
         public TileLoader()
         {
             Tileset = new Dictionary<int, IntPtr>();
             CollisionRectangles = new List<SDL.SDL_Rect>();
             ClimbingRectangles = new List<SDL.SDL_Rect>();
+            CoinRectangles = new List<SDL.SDL_Rect>();
+            CollectedCoinPositions = new HashSet<(int x, int y)>(); // Initialize collected coins
         }
 
         public void LoadTileset(int tileWidth, int tileHeight, string tilesetImagePath, IntPtr renderer)
@@ -109,7 +112,7 @@ namespace Platformer_Game
                 {
                     if (layer.type == "tilelayer" && layer.name == "BackgroundLayer")
                     {
-                        RenderLayer(layer, mapWidth, mapHeight, renderer, camera);
+                        RenderLayer(layer, mapWidth, mapHeight, renderer, camera, true);
                     }
                 }
 
@@ -118,7 +121,7 @@ namespace Platformer_Game
                 {
                     if (layer.type == "tilelayer" && layer.name != "BackgroundLayer")
                     {
-                        RenderLayer(layer, mapWidth, mapHeight, renderer, camera);
+                        RenderLayer(layer, mapWidth, mapHeight, renderer, camera, false);
                     }
                 }
             }
@@ -128,7 +131,7 @@ namespace Platformer_Game
             }
         }
 
-        private void RenderLayer(dynamic layer, int mapWidth, int mapHeight, IntPtr renderer, Camera camera)
+        private void RenderLayer(dynamic layer, int mapWidth, int mapHeight, IntPtr renderer, Camera camera, bool isBackgroundLayer)
         {
             int[] tileIds = layer.data.ToObject<int[]>();
 
@@ -153,7 +156,11 @@ namespace Platformer_Game
 
                     SDL.SDL_Rect renderRect = camera.GetRenderRect(destRect);
 
-                    SDL.SDL_RenderCopy(renderer, Tileset[tileId], IntPtr.Zero, ref renderRect);
+                    // Render the BackgroundLayer tile if a coin was collected at this position
+                    if (isBackgroundLayer || !CollectedCoinPositions.Contains((x, y)))
+                    {
+                        SDL.SDL_RenderCopy(renderer, Tileset[tileId], IntPtr.Zero, ref renderRect);
+                    }
                 }
             }
         }
@@ -224,6 +231,33 @@ namespace Platformer_Game
                             }
                         }
                     }
+                    else if (layerType == "tilelayer" && layerName == "CoinLayer")
+                    {
+                        int[] tileIds = layer.data.ToObject<int[]>();
+
+                        for (int y = 0; y < mapHeight; y++)
+                        {
+                            for (int x = 0; x < mapWidth; x++)
+                            {
+                                int tileId = tileIds[y * mapWidth + x];
+
+                                if (tileId == 0 || !Tileset.ContainsKey(tileId))
+                                {
+                                    continue;
+                                }
+
+                                SDL.SDL_Rect destRect = new SDL.SDL_Rect
+                                {
+                                    x = x * TileWidth,
+                                    y = y * TileHeight,
+                                    w = TileWidth,
+                                    h = TileHeight
+                                };
+
+                                CoinRectangles.Add(destRect); // Add coin rectangles
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -243,6 +277,12 @@ namespace Platformer_Game
             }
 
             foreach (var rect in ClimbingRectangles)
+            {
+                SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
+                SDL.SDL_RenderDrawRect(renderer, ref renderRect);
+            }
+
+            foreach (var rect in CoinRectangles) // Render coin rectangles for debugging
             {
                 SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
                 SDL.SDL_RenderDrawRect(renderer, ref renderRect);

@@ -20,6 +20,7 @@ namespace Platformer_Game
         {
             LoadSound("walk", "Assets/Sounds/walk.mp3");
             LoadSound("sword", "Assets/Sounds/sword.mp3");
+            LoadSound("coin", "Assets/Sounds/coin.wav"); // Load the coin sound
         }
 
         private void LoadSound(string soundName, string filePath)

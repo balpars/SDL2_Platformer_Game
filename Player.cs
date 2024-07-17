@@ -48,7 +48,7 @@ namespace Platformer_Game
             animationManager.LoadContent(renderer);
         }
 
-        public void Update(float deltaTime, byte[] keyState, CollisionManager collisionManager)
+        public void Update(float deltaTime, byte[] keyState, CollisionManager collisionManager, TileLoader tileLoader)
         {
             animationEnded = false;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
@@ -72,10 +72,13 @@ namespace Platformer_Game
             }
 
             // Print the current state to the console for debugging
-            Console.WriteLine($"Current State: {currentState}");
+            //Console.WriteLine($"Current State: {currentState}");
 
             // Play sound based on state changes
             HandleSoundEffects(keyState, previousState);
+
+            // Check collision with coins
+            CheckCoinCollision(tileLoader);
 
             // ClimbingLayer kontrolü
             if (collisionManager.CheckClimbingLayer(rect))
@@ -139,6 +142,28 @@ namespace Platformer_Game
             {
                 soundManager.PlaySound("sword");
             }
+        }
+
+        private void CheckCoinCollision(TileLoader tileLoader)
+        {
+            foreach (var coinRect in tileLoader.CoinRectangles.ToArray())
+            {
+                if (CheckCollision(rect, coinRect))
+                {
+                    tileLoader.CoinRectangles.Remove(coinRect);
+                    tileLoader.CollectedCoinPositions.Add((coinRect.x / tileLoader.TileWidth, coinRect.y / tileLoader.TileHeight)); // Add position to collected coins
+                    soundManager.PlaySound("coin"); // Play coin sound
+                    Console.WriteLine("Coin collected!");
+                }
+            }
+        }
+
+        private bool CheckCollision(SDL.SDL_Rect a, SDL.SDL_Rect b)
+        {
+            return (a.x < b.x + b.w &&
+                    a.x + a.w > b.x &&
+                    a.y < b.y + b.h &&
+                    a.h + a.y > b.y);
         }
 
         public void Render(Camera camera)

@@ -72,7 +72,7 @@ namespace Platformer_Game
             soundManager.LoadContent();
 
             Player player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager);
-            Samurai samurai = new Samurai(spawnX + 30, spawnY + 38, 93, 50, renderer, soundManager); // Adjust Samurai y-coordinate by +20
+            Samurai samurai = new Samurai(spawnX + 145, spawnY + 38, 93, 50, renderer, soundManager); // Adjust Samurai y-coordinate by +20
 
             Camera camera = new Camera(800, 600);
             camera.SetTarget(player);

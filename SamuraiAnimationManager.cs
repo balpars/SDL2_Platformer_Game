@@ -13,11 +13,9 @@ namespace Platformer_Game
         private float animationTimer;
         private int currentFrame;
 
-        // Karakterin orijinal frame boyutları
         private const int OriginalFrameWidth = 93;
         private const int OriginalFrameHeight = 50;
 
-        // Karakterin ölçeklenmiş boyutları
         private const int FrameWidth = 93;
         private const int FrameHeight = 50;
 
@@ -31,8 +29,8 @@ namespace Platformer_Game
         public void LoadContent(IntPtr renderer)
         {
             spritesheets[SamuraiState.Idle] = LoadTexture(renderer, "Assets/Samurai/idle_s.png");
-            //spritesheets[SamuraiState.Run] = LoadTexture(renderer, "Assets/Samurai/run_s.png");
-            //spritesheets[SamuraiState.Attack] = LoadTexture(renderer, "Assets/Samurai/attack_s.png");
+            spritesheets[SamuraiState.Running] = LoadTexture(renderer, "Assets/Samurai/run_s.png");
+            spritesheets[SamuraiState.Attacking] = LoadTexture(renderer, "Assets/Samurai/attack_s.png");
 
             CalculateFrameCounts();
         }
@@ -42,7 +40,7 @@ namespace Platformer_Game
             foreach (var state in spritesheets.Keys)
             {
                 SDL.SDL_QueryTexture(spritesheets[state], out _, out _, out int textureWidth, out _);
-                frameCounts[state] = textureWidth / OriginalFrameWidth; // Her bir resmin orijinal genişliği
+                frameCounts[state] = textureWidth / OriginalFrameWidth;
                 Console.WriteLine($"{state} spritesheet has {frameCounts[state]} frames.");
             }
         }
@@ -103,7 +101,7 @@ namespace Platformer_Game
         {
             return new SDL.SDL_Rect
             {
-                x = destRect.x-37,
+                x = destRect.x - 37,
                 y = destRect.y,
                 w = FrameWidth,
                 h = FrameHeight

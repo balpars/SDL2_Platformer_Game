@@ -74,7 +74,7 @@ namespace Platformer_Game
                             byte[] keyState = new byte[numKeys];
                             System.Runtime.InteropServices.Marshal.Copy(keyStatePtr, keyState, 0, numKeys);
 
-                            player.Update(fixedDeltaTime, keyState, collisionManager);
+                            player.Update(fixedDeltaTime, keyState, collisionManager, tileLoader); // Update Player with TileLoader
                             samurai.Update(fixedDeltaTime); // Update Samurai state
                             camera.Update(fixedDeltaTime);
 
