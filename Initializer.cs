@@ -11,7 +11,7 @@ namespace Platformer_Game
 {
     public static class Initializer
     {
-        public static (IntPtr window, IntPtr renderer, TileLoader tileLoader, dynamic mapData, Player player, Camera camera, CollisionManager collisionManager, SoundManager soundManager, IntPtr font) Init()
+        public static (IntPtr window, IntPtr renderer, TileLoader tileLoader, dynamic mapData, Player player, Samurai samurai, Camera camera, CollisionManager collisionManager, SoundManager soundManager, IntPtr font) Init()
         {
             if (SDL.SDL_Init(SDL.SDL_INIT_VIDEO | SDL.SDL_INIT_AUDIO) < 0)
             {
@@ -71,7 +71,8 @@ namespace Platformer_Game
             SoundManager soundManager = new SoundManager();
             soundManager.LoadContent();
 
-            Player player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager); // Güncellenen boyutlar
+            Player player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager);
+            Samurai samurai = new Samurai(spawnX + 30, spawnY + 38, 93, 50, renderer, soundManager); // Adjust Samurai y-coordinate by +20
 
             Camera camera = new Camera(800, 600);
             camera.SetTarget(player);
@@ -85,8 +86,9 @@ namespace Platformer_Game
             CollisionManager collisionManager = new CollisionManager(collisionRectangles, climbingRectangles);
 
             player.LoadContent();
+            samurai.LoadContent(); // Load Samurai content
 
-            return (window, renderer, tileLoader, mapData, player, camera, collisionManager, soundManager, font);
+            return (window, renderer, tileLoader, mapData, player, samurai, camera, collisionManager, soundManager, font);
         }
     }
 }

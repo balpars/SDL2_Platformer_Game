@@ -17,25 +17,17 @@ namespace Platformer_Game
 
         public bool CheckCollisions(SDL.SDL_Rect newRect)
         {
-            //newRect.w = (newRect.w / 10);
-            //newRect.x += 52;
-            //newRect.h = newRect.h / 3;
-            //newRect.y += 52;
+            
 
-
-            //Console.WriteLine($"newRect.w = {newRect.w} newRect.h = {newRect.h}" +
-            //    $"newRect.x = {newRect.x} newRect.y = {newRect.y}");
             foreach (var rect in collisionRectangles)
             {
                 if (CheckCollision(newRect, rect))
                 {
-
                     return true;
                 }
             }
             return false;
         }
-
 
         public bool CheckClimbingLayer(SDL.SDL_Rect newRect)
         {
@@ -59,7 +51,7 @@ namespace Platformer_Game
 
         public void RenderDebug(IntPtr renderer, Camera camera)
         {
-            SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Siyah renk
+            SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black color
 
             foreach (var rect in collisionRectangles)
             {

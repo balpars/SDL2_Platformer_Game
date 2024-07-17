@@ -10,11 +10,11 @@ namespace Platformer_Game
         {
             try
             {
-                var (window, renderer, tileLoader, mapData, player, camera, collisionManager, soundManager, font) = Initializer.Init();
+                var (window, renderer, tileLoader, mapData, player, samurai, camera, collisionManager, soundManager, font) = Initializer.Init();
 
                 bool running = true;
                 bool startGame = false;
-                bool debugMode = false; // Debug modu
+                bool debugMode = false; // Debug mode
 
                 MainMenu mainMenu = new MainMenu(renderer, font);
 
@@ -33,7 +33,7 @@ namespace Platformer_Game
                         }
                         else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
                         {
-                            debugMode = !debugMode; // P tuşuna basıldığında debug modunu değiştir
+                            debugMode = !debugMode; // Toggle debug mode with P key
                         }
                     }
 
@@ -64,7 +64,7 @@ namespace Platformer_Game
                             }
                             else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
                             {
-                                debugMode = !debugMode; // P tuşuna basıldığında debug modunu değiştir
+                                debugMode = !debugMode; // Toggle debug mode with P key
                             }
                         }
 
@@ -75,6 +75,7 @@ namespace Platformer_Game
                             System.Runtime.InteropServices.Marshal.Copy(keyStatePtr, keyState, 0, numKeys);
 
                             player.Update(fixedDeltaTime, keyState, collisionManager);
+                            samurai.Update(fixedDeltaTime); // Update Samurai state
                             camera.Update(fixedDeltaTime);
 
                             accumulator -= fixedDeltaTime;
@@ -85,12 +86,14 @@ namespace Platformer_Game
 
                         tileLoader.RenderMap(mapData, renderer, camera);
                         player.Render(camera);
+                        samurai.Render(camera); // Render Samurai
 
                         if (debugMode)
                         {
                             tileLoader.RenderDebug(renderer, camera);
                             collisionManager.RenderDebug(renderer, camera);
                             player.RenderDebug(renderer, camera);
+                            samurai.RenderDebug(renderer, camera); // Render Samurai debug info
                         }
 
                         SDL.SDL_RenderPresent(renderer);
