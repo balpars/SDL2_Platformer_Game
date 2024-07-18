@@ -1,5 +1,4 @@
-﻿// MovementManager.cs
-using SDL2;
+﻿using SDL2;
 
 namespace Platformer_Game
 {
@@ -94,7 +93,7 @@ namespace Platformer_Game
                 isJumping = true;
                 jumpSpeed = -JumpSpeed;
                 currentState = PlayerState.Jumping;
-                jumpCooldownTimer = 0.2f; // Set cooldown to 1 second
+                jumpCooldownTimer = 0.2f; // Set cooldown to 0.2 seconds
             }
 
             if (keyState[(int)SDL.SDL_Scancode.SDL_SCANCODE_X] == 1 && currentState != PlayerState.Attacking && currentState != PlayerState.Attacking2 && currentState != PlayerState.AttackCombo)

@@ -8,6 +8,7 @@ namespace Platformer_Game
         private SDL.SDL_Rect rect;
         private bool facingLeft;
         private PlayerState currentState;
+        private PlayerState previousState; // Önceki durumu tutmak için
         private AnimationManager animationManager;
         private MovementManager movementManager;
         private IntPtr renderer;
@@ -15,6 +16,8 @@ namespace Platformer_Game
         private bool isJumping;
         private float jumpSpeed;
         private SoundManager soundManager;
+        private int originalY; // Orijinal y pozisyonunu tutmak için
+        private bool flag = false;
 
         public Vector2 Position => new Vector2(rect.x, rect.y);
 
@@ -26,6 +29,7 @@ namespace Platformer_Game
 
         private const int CharacterWidth = 20;
         private const int CharacterHeight = 40;
+        private const int CrouchHeight = 20;
 
         public Player(int x, int y, int width, int height, IntPtr renderer, SoundManager soundManager)
         {
@@ -35,10 +39,12 @@ namespace Platformer_Game
             movementManager = new MovementManager();
             facingLeft = false;
             currentState = PlayerState.Idle;
+            previousState = PlayerState.Idle; // Başlangıçta previousState'i Idle olarak ayarla
             animationEnded = false;
             isJumping = false;
             jumpSpeed = 0f;
             this.soundManager = soundManager;
+            originalY = y + 42;
         }
 
         public void LoadContent()
@@ -66,6 +72,8 @@ namespace Platformer_Game
                 animationManager.ResetAnimation();
             }
 
+            AdjustCollisionHeight();
+
             Console.WriteLine($"Current State: {currentState}");
 
             HandleSoundEffects(keyState, previousState);
@@ -80,6 +88,36 @@ namespace Platformer_Game
             if (CheckFlagCollision(tileLoader.FlagRectangles))
             {
                 // Do nothing for now, handled in the main loop
+            }
+
+            // Mevcut durumu önceki durum olarak kaydet
+            previousState = currentState;
+        }
+
+        private void AdjustCollisionHeight()
+        {
+            if (currentState == PlayerState.Crouching || currentState == PlayerState.CrouchWalking)
+            {
+                rect.h = CrouchHeight;
+                rect.y = originalY + (CharacterHeight - CrouchHeight); // Y pozisyonunu sabit tut
+                flag = true;
+            }
+            else if (currentState == PlayerState.Jumping || currentState == PlayerState.JumpFall)
+            {
+                // Zıplama durumunda y pozisyonunu zıplama hızına göre ayarla
+                rect.y += (int)jumpSpeed;
+                rect.h = CharacterHeight; // Zıplarken karakterin tam yüksekliğini kullan
+            }
+            else 
+            {
+                rect.h = CharacterHeight;
+                if (flag)
+                {
+                    rect.y = originalY; // Sadece crouch durumundan idle durumuna geçerken Y pozisyonunu orijinal haline getir
+                    flag = false;
+                }
+                
+                
             }
         }
 
@@ -172,6 +210,11 @@ namespace Platformer_Game
             IntPtr texture = animationManager.GetCurrentTexture(currentState);
             SDL.SDL_Rect srcRect = animationManager.GetSourceRect();
             SDL.SDL_Rect dstRect = animationManager.GetDestinationRect(rect);
+
+            if (currentState == PlayerState.Crouching || currentState == PlayerState.CrouchWalking)
+            {
+                dstRect.y -= (CharacterHeight - CrouchHeight); // Crouch veya CrouchWalking durumunda yukarı kaydır
+            }
 
             dstRect = camera.GetRenderRect(dstRect);
 

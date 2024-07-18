@@ -214,9 +214,9 @@ namespace Platformer_Game
 
             var playerSpawnPoint = tileLoader.GetPlayerSpawnPoint(mapData);
             int spawnX = (int)playerSpawnPoint.Item1;
-            int spawnY = (int)playerSpawnPoint.Item2 - 25;
+            int spawnY = (int)playerSpawnPoint.Item2;
 
-            player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager);
+            player = new Player(spawnX, spawnY+30, 20, 40, renderer, soundManager);
             samurai = new Samurai(spawnX + 30, spawnY+38, 20, 40, renderer, soundManager);
 
             collisionManager = new CollisionManager(tileLoader.CollisionRectangles, tileLoader.ClimbingRectangles);
