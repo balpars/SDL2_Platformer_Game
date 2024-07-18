@@ -1,5 +1,4 @@
-﻿// Initializer.cs
-using SDL2;
+﻿using SDL2;
 using System;
 using System.IO;
 using Newtonsoft.Json;
@@ -63,6 +62,7 @@ namespace Platformer_Game
             int tileHeight = mapData.tileheight;
 
             tileLoader.LoadTileset(tileWidth, tileHeight, tilesetImagePath, renderer);
+            tileLoader.LoadCoinSpritesheet("Assets/Map/coin.png", renderer); // Load coin spritesheet
 
             var playerSpawnPoint = tileLoader.GetPlayerSpawnPoint(mapData);
             int spawnX = (int)playerSpawnPoint.Item1;
@@ -72,7 +72,7 @@ namespace Platformer_Game
             soundManager.LoadContent();
 
             Player player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager);
-            Samurai samurai = new Samurai(spawnX + 145, spawnY + 38, 93, 50, renderer, soundManager); // Adjust Samurai y-coordinate by +20
+            Samurai samurai = new Samurai(spawnX + 150, spawnY + 38, 93, 50, renderer, soundManager); // Adjust Samurai y-coordinate by +20
 
             Camera camera = new Camera(800, 600);
             camera.SetTarget(player);

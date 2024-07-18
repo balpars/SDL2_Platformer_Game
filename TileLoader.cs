@@ -14,6 +14,14 @@ namespace Platformer_Game
         public List<SDL.SDL_Rect> CoinRectangles { get; private set; }
         public HashSet<(int x, int y)> CollectedCoinPositions { get; private set; } // Track collected coins
 
+        private IntPtr coinSpritesheet; // Coin spritesheet texture
+        private const int CoinFrameWidth = 16; // Width of each frame in the coin spritesheet
+        private const int CoinFrameHeight = 16; // Height of each frame in the coin spritesheet
+        private const int CoinFrameCount = 15; // Number of frames in the coin spritesheet
+        private int currentCoinFrame; // Current frame for coin animation
+        private float coinAnimationTimer; // Timer to control coin animation speed
+        private const float CoinAnimationSpeed = 0.1f; // Speed of coin animation
+
         public TileLoader()
         {
             Tileset = new Dictionary<int, IntPtr>();
@@ -61,6 +69,11 @@ namespace Platformer_Game
             {
                 Console.WriteLine($"Error loading tileset: {ex.Message}");
             }
+        }
+
+        public void LoadCoinSpritesheet(string filePath, IntPtr renderer)
+        {
+            coinSpritesheet = LoadTexture(filePath, renderer);
         }
 
         private IntPtr LoadTexture(string filePath, IntPtr renderer)
@@ -119,9 +132,13 @@ namespace Platformer_Game
                 // Render other layers except BackgroundLayer
                 foreach (var layer in mapData.layers)
                 {
-                    if (layer.type == "tilelayer" && layer.name != "BackgroundLayer")
+                    if (layer.type == "tilelayer" && layer.name != "BackgroundLayer" && layer.name != "CoinLayer")
                     {
                         RenderLayer(layer, mapWidth, mapHeight, renderer, camera, false);
+                    }
+                    else if (layer.type == "tilelayer" && layer.name == "CoinLayer")
+                    {
+                        RenderCoinLayer(layer, mapWidth, mapHeight, renderer, camera);
                     }
                 }
             }
@@ -162,6 +179,60 @@ namespace Platformer_Game
                         SDL.SDL_RenderCopy(renderer, Tileset[tileId], IntPtr.Zero, ref renderRect);
                     }
                 }
+            }
+        }
+
+        private void RenderCoinLayer(dynamic layer, int mapWidth, int mapHeight, IntPtr renderer, Camera camera)
+        {
+            int[] tileIds = layer.data.ToObject<int[]>();
+
+            for (int y = 0; y < mapHeight; y++)
+            {
+                for (int x = 0; x < mapWidth; x++)
+                {
+                    int tileId = tileIds[y * mapWidth + x];
+
+                    if (tileId == 0)
+                    {
+                        continue;
+                    }
+
+                    SDL.SDL_Rect destRect = new SDL.SDL_Rect
+                    {
+                        x = x * TileWidth,
+                        y = y * TileHeight,
+                        w = TileWidth,
+                        h = TileHeight
+                    };
+
+                    if (!CollectedCoinPositions.Contains((x, y)))
+                    {
+                        RenderCoin(renderer, camera.GetRenderRect(destRect));
+                    }
+                }
+            }
+        }
+
+        private void RenderCoin(IntPtr renderer, SDL.SDL_Rect destRect)
+        {
+            SDL.SDL_Rect srcRect = new SDL.SDL_Rect
+            {
+                x = currentCoinFrame * CoinFrameWidth,
+                y = 0,
+                w = CoinFrameWidth,
+                h = CoinFrameHeight
+            };
+
+            SDL.SDL_RenderCopy(renderer, coinSpritesheet, ref srcRect, ref destRect);
+        }
+
+        public void UpdateCoinAnimation(float deltaTime)
+        {
+            coinAnimationTimer += deltaTime;
+            if (coinAnimationTimer >= CoinAnimationSpeed)
+            {
+                currentCoinFrame = (currentCoinFrame + 1) % CoinFrameCount; // Update to use CoinFrameCount
+                coinAnimationTimer = 0f;
             }
         }
 
@@ -241,7 +312,7 @@ namespace Platformer_Game
                             {
                                 int tileId = tileIds[y * mapWidth + x];
 
-                                if (tileId == 0 || !Tileset.ContainsKey(tileId))
+                                if (tileId == 0)
                                 {
                                     continue;
                                 }
@@ -254,7 +325,7 @@ namespace Platformer_Game
                                     h = TileHeight
                                 };
 
-                                CoinRectangles.Add(destRect); // Add coin rectangles
+                                CoinRectangles.Add(destRect);
                             }
                         }
                     }

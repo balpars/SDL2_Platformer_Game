@@ -1,5 +1,4 @@
-﻿// Program.cs
-using SDL2;
+﻿using SDL2;
 using System;
 
 namespace Platformer_Game
@@ -14,7 +13,7 @@ namespace Platformer_Game
 
                 bool running = true;
                 bool startGame = false;
-                bool debugMode = false; // Debug mode
+                bool debugMode = false; // Debug modu
 
                 MainMenu mainMenu = new MainMenu(renderer, font);
 
@@ -33,7 +32,7 @@ namespace Platformer_Game
                         }
                         else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
                         {
-                            debugMode = !debugMode; // Toggle debug mode with P key
+                            debugMode = !debugMode; // P tuşuna basıldığında debug modunu değiştir
                         }
                     }
 
@@ -64,7 +63,7 @@ namespace Platformer_Game
                             }
                             else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
                             {
-                                debugMode = !debugMode; // Toggle debug mode with P key
+                                debugMode = !debugMode; // P tuşuna basıldığında debug modunu değiştir
                             }
                         }
 
@@ -74,9 +73,10 @@ namespace Platformer_Game
                             byte[] keyState = new byte[numKeys];
                             System.Runtime.InteropServices.Marshal.Copy(keyStatePtr, keyState, 0, numKeys);
 
-                            player.Update(fixedDeltaTime, keyState, collisionManager, tileLoader); // Update Player with TileLoader
-                            samurai.Update(fixedDeltaTime); // Update Samurai state
+                            player.Update(fixedDeltaTime, keyState, collisionManager, tileLoader); // Pass tileLoader to player.Update
+                            samurai.Update(fixedDeltaTime); // Update Samurai
                             camera.Update(fixedDeltaTime);
+                            tileLoader.UpdateCoinAnimation(fixedDeltaTime); // Update coin animation
 
                             accumulator -= fixedDeltaTime;
                         }
@@ -86,14 +86,14 @@ namespace Platformer_Game
 
                         tileLoader.RenderMap(mapData, renderer, camera);
                         player.Render(camera);
-                        samurai.Render(camera); // Render Samurai
+                        samurai.Render(camera);
 
                         if (debugMode)
                         {
                             tileLoader.RenderDebug(renderer, camera);
                             collisionManager.RenderDebug(renderer, camera);
                             player.RenderDebug(renderer, camera);
-                            samurai.RenderDebug(renderer, camera); // Render Samurai debug info
+                            samurai.RenderDebug(renderer, camera);
                         }
 
                         SDL.SDL_RenderPresent(renderer);
