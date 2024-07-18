@@ -1,5 +1,4 @@
-﻿// Samurai.cs
-using SDL2;
+﻿using SDL2;
 using System.Numerics;
 using System;
 
@@ -47,15 +46,12 @@ namespace Platformer_Game
             animationManager.LoadContent(renderer);
         }
 
-        public void Update(float deltaTime)
+        public void Update(float deltaTime, CollisionManager collisionManager)
         {
             animationEnded = false;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
 
             stateTimer += deltaTime;
-
-            // Debugging: Print current state and position
-            //Console.WriteLine($"State Timer: {stateTimer}, Current State: {currentState}, Position: ({rect.x}, {rect.y}), DeltaTime: {deltaTime}");
 
             // Handle state transitions
             if (stateTimer <= 3.0f)
@@ -73,18 +69,16 @@ namespace Platformer_Game
             else
             {
                 currentState = SamuraiState.Idle;
+                stateTimer = 0f; // Reset the state timer
             }
 
-            movementManager.MoveSamurai(deltaTime, ref rect, currentState); // Move Samurai
-            movementManager.UpdatePosition(deltaTime, ref rect, ref currentState); // Update Samurai position
+            movementManager.MoveSamurai(deltaTime, ref rect, currentState);
+            movementManager.UpdatePosition(deltaTime, ref rect, ref currentState, collisionManager);
 
             if (animationEnded)
             {
                 animationManager.ResetAnimation();
             }
-
-            // Debugging: Print new position after movement
-            //Console.WriteLine($"Updated Position: ({rect.x}, {rect.y})");
         }
 
         public void Render(Camera camera)
@@ -106,5 +100,12 @@ namespace Platformer_Game
             SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
             SDL.SDL_RenderDrawRect(renderer, ref renderRect);
         }
+    }
+
+    public enum SamuraiState
+    {
+        Idle,
+        Running,
+        Attacking
     }
 }

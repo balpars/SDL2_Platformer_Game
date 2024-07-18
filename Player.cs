@@ -74,7 +74,7 @@ namespace Platformer_Game
 
             AdjustCollisionHeight();
 
-            Console.WriteLine($"Current State: {currentState}");
+            //Console.WriteLine($"Current State: {currentState}");
 
             HandleSoundEffects(keyState, previousState);
 
