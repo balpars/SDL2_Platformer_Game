@@ -1,6 +1,7 @@
 ﻿using SDL2;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Platformer_Game
 {
@@ -12,15 +13,24 @@ namespace Platformer_Game
         public List<SDL.SDL_Rect> CollisionRectangles { get; private set; }
         public List<SDL.SDL_Rect> ClimbingRectangles { get; private set; }
         public List<SDL.SDL_Rect> CoinRectangles { get; private set; }
-        public HashSet<(int x, int y)> CollectedCoinPositions { get; private set; } // Track collected coins
+        public List<SDL.SDL_Rect> FlagRectangles { get; private set; }
+        public HashSet<(int x, int y)> CollectedCoinPositions { get; private set; }
 
-        private IntPtr coinSpritesheet; // Coin spritesheet texture
-        private const int CoinFrameWidth = 16; // Width of each frame in the coin spritesheet
-        private const int CoinFrameHeight = 16; // Height of each frame in the coin spritesheet
-        private const int CoinFrameCount = 15; // Number of frames in the coin spritesheet
-        private int currentCoinFrame; // Current frame for coin animation
-        private float coinAnimationTimer; // Timer to control coin animation speed
-        private const float CoinAnimationSpeed = 0.1f; // Speed of coin animation
+        private IntPtr coinSpritesheet;
+        private const int CoinFrameWidth = 16;
+        private const int CoinFrameHeight = 16;
+        private const int CoinFrameCount = 15;
+        private int currentCoinFrame;
+        private float coinAnimationTimer;
+        private const float CoinAnimationSpeed = 0.1f;
+
+        private IntPtr flagSpritesheet;
+        private const int FlagFrameWidth = 60;
+        private const int FlagFrameHeight = 60;
+        private const int FlagFrameCount = 5;
+        private int currentFlagFrame;
+        private float flagAnimationTimer;
+        private const float FlagAnimationSpeed = 0.2f;
 
         public TileLoader()
         {
@@ -28,7 +38,8 @@ namespace Platformer_Game
             CollisionRectangles = new List<SDL.SDL_Rect>();
             ClimbingRectangles = new List<SDL.SDL_Rect>();
             CoinRectangles = new List<SDL.SDL_Rect>();
-            CollectedCoinPositions = new HashSet<(int x, int y)>(); // Initialize collected coins
+            FlagRectangles = new List<SDL.SDL_Rect>();
+            CollectedCoinPositions = new HashSet<(int x, int y)>();
         }
 
         public void LoadTileset(int tileWidth, int tileHeight, string tilesetImagePath, IntPtr renderer)
@@ -76,6 +87,11 @@ namespace Platformer_Game
             coinSpritesheet = LoadTexture(filePath, renderer);
         }
 
+        public void LoadFlagSpritesheet(string filePath, IntPtr renderer)
+        {
+            flagSpritesheet = LoadTexture(filePath, renderer);
+        }
+
         private IntPtr LoadTexture(string filePath, IntPtr renderer)
         {
             IntPtr surface = SDL_image.IMG_Load(filePath);
@@ -92,7 +108,6 @@ namespace Platformer_Game
                 throw new Exception($"Failed to create texture: {SDL.SDL_GetError()}");
             }
 
-            // Set the blend mode for transparency
             SDL.SDL_SetTextureBlendMode(texture, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
 
             return texture;
@@ -103,7 +118,6 @@ namespace Platformer_Game
             IntPtr tileTexture = SDL.SDL_CreateTexture(renderer, SDL.SDL_PIXELFORMAT_RGBA8888,
                 (int)SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, TileWidth, TileHeight);
 
-            // Set the blend mode for transparency
             SDL.SDL_SetTextureBlendMode(tileTexture, SDL.SDL_BlendMode.SDL_BLENDMODE_BLEND);
 
             SDL.SDL_SetRenderTarget(renderer, tileTexture);
@@ -120,7 +134,6 @@ namespace Platformer_Game
                 int mapWidth = mapData.width;
                 int mapHeight = mapData.height;
 
-                // Render the BackgroundLayer first
                 foreach (var layer in mapData.layers)
                 {
                     if (layer.type == "tilelayer" && layer.name == "BackgroundLayer")
@@ -129,16 +142,19 @@ namespace Platformer_Game
                     }
                 }
 
-                // Render other layers except BackgroundLayer
                 foreach (var layer in mapData.layers)
                 {
-                    if (layer.type == "tilelayer" && layer.name != "BackgroundLayer" && layer.name != "CoinLayer")
+                    if (layer.type == "tilelayer" && layer.name != "BackgroundLayer" && layer.name != "CoinLayer" && layer.name != "FlagLayer")
                     {
                         RenderLayer(layer, mapWidth, mapHeight, renderer, camera, false);
                     }
                     else if (layer.type == "tilelayer" && layer.name == "CoinLayer")
                     {
                         RenderCoinLayer(layer, mapWidth, mapHeight, renderer, camera);
+                    }
+                    else if (layer.type == "tilelayer" && layer.name == "FlagLayer")
+                    {
+                        RenderFlagLayer(layer, mapWidth, mapHeight, renderer, camera);
                     }
                 }
             }
@@ -173,7 +189,6 @@ namespace Platformer_Game
 
                     SDL.SDL_Rect renderRect = camera.GetRenderRect(destRect);
 
-                    // Render the BackgroundLayer tile if a coin was collected at this position
                     if (isBackgroundLayer || !CollectedCoinPositions.Contains((x, y)))
                     {
                         SDL.SDL_RenderCopy(renderer, Tileset[tileId], IntPtr.Zero, ref renderRect);
@@ -226,13 +241,64 @@ namespace Platformer_Game
             SDL.SDL_RenderCopy(renderer, coinSpritesheet, ref srcRect, ref destRect);
         }
 
+        private void RenderFlagLayer(dynamic layer, int mapWidth, int mapHeight, IntPtr renderer, Camera camera)
+        {
+            int[] tileIds = layer.data.ToObject<int[]>();
+
+            for (int y = 0; y < mapHeight; y++)
+            {
+                for (int x = 0; x < mapWidth; x++)
+                {
+                    int tileId = tileIds[y * mapWidth + x];
+
+                    if (tileId == 0)
+                    {
+                        continue;
+                    }
+
+                    SDL.SDL_Rect destRect = new SDL.SDL_Rect
+                    {
+                        x = x * TileWidth,
+                        y = y * TileHeight,
+                        w = TileWidth,
+                        h = TileHeight
+                    };
+
+                    RenderFlag(renderer, camera.GetRenderRect(destRect));
+                }
+            }
+        }
+
+        private void RenderFlag(IntPtr renderer, SDL.SDL_Rect destRect)
+        {
+            SDL.SDL_Rect srcRect = new SDL.SDL_Rect
+            {
+                x = currentFlagFrame * FlagFrameWidth,
+                y = 0,
+                w = FlagFrameWidth,
+                h = FlagFrameHeight
+            };
+
+            SDL.SDL_RenderCopy(renderer, flagSpritesheet, ref srcRect, ref destRect);
+        }
+
         public void UpdateCoinAnimation(float deltaTime)
         {
             coinAnimationTimer += deltaTime;
             if (coinAnimationTimer >= CoinAnimationSpeed)
             {
-                currentCoinFrame = (currentCoinFrame + 1) % CoinFrameCount; // Update to use CoinFrameCount
+                currentCoinFrame = (currentCoinFrame + 1) % CoinFrameCount;
                 coinAnimationTimer = 0f;
+            }
+        }
+
+        public void UpdateFlagAnimation(float deltaTime)
+        {
+            flagAnimationTimer += deltaTime;
+            if (flagAnimationTimer >= FlagAnimationSpeed)
+            {
+                currentFlagFrame = (currentFlagFrame + 1) % FlagFrameCount;
+                flagAnimationTimer = 0f;
             }
         }
 
@@ -298,7 +364,7 @@ namespace Platformer_Game
                                     h = TileHeight
                                 };
 
-                                ClimbingRectangles.Add(destRect); // Yeni eklenen tırmanma kareleri
+                                ClimbingRectangles.Add(destRect);
                             }
                         }
                     }
@@ -329,6 +395,33 @@ namespace Platformer_Game
                             }
                         }
                     }
+                    else if (layerType == "tilelayer" && layerName == "FlagLayer")
+                    {
+                        int[] tileIds = layer.data.ToObject<int[]>();
+
+                        for (int y = 0; y < mapHeight; y++)
+                        {
+                            for (int x = 0; x < mapWidth; x++)
+                            {
+                                int tileId = tileIds[y * mapWidth + x];
+
+                                if (tileId == 0)
+                                {
+                                    continue;
+                                }
+
+                                SDL.SDL_Rect destRect = new SDL.SDL_Rect
+                                {
+                                    x = x * TileWidth,
+                                    y = y * TileHeight,
+                                    w = TileWidth,
+                                    h = TileHeight
+                                };
+
+                                FlagRectangles.Add(destRect);
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -339,7 +432,7 @@ namespace Platformer_Game
 
         public void RenderDebug(IntPtr renderer, Camera camera)
         {
-            SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Siyah renk
+            SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
             foreach (var rect in CollisionRectangles)
             {
@@ -353,11 +446,25 @@ namespace Platformer_Game
                 SDL.SDL_RenderDrawRect(renderer, ref renderRect);
             }
 
-            foreach (var rect in CoinRectangles) // Render coin rectangles for debugging
+            foreach (var rect in CoinRectangles)
             {
                 SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
                 SDL.SDL_RenderDrawRect(renderer, ref renderRect);
             }
+
+            foreach (var rect in FlagRectangles)
+            {
+                SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
+                SDL.SDL_RenderDrawRect(renderer, ref renderRect);
+            }
+        }
+
+        public void RemoveCoinAt(int index)
+        {
+            var coinRect = CoinRectangles[index];
+            CoinRectangles.RemoveAt(index);
+            var (x, y) = (coinRect.x / TileWidth, coinRect.y / TileHeight);
+            CollectedCoinPositions.Add((x, y));
         }
 
         public (int, int) GetPlayerSpawnPoint(dynamic mapData)
@@ -382,7 +489,7 @@ namespace Platformer_Game
                 }
             }
 
-            return (0, 0); // Default spawn point if not found
+            return (0, 0);
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿// Player.cs
-using SDL2;
+﻿using SDL2;
 using System.Numerics;
 
 namespace Platformer_Game
@@ -25,13 +24,12 @@ namespace Platformer_Game
             internal set => rect = value;
         }
 
-        // Karakterin boyutlarını burada tanımlayın
-        private const int CharacterWidth = 20; // Güncellenen genişlik
-        private const int CharacterHeight = 40; // Güncellenen yükseklik
+        private const int CharacterWidth = 20;
+        private const int CharacterHeight = 40;
 
         public Player(int x, int y, int width, int height, IntPtr renderer, SoundManager soundManager)
         {
-            rect = new SDL.SDL_Rect { x = x, y = y, w = CharacterWidth, h = CharacterHeight }; // Güncellenen boyutlar
+            rect = new SDL.SDL_Rect { x = x, y = y, w = CharacterWidth, h = CharacterHeight };
             this.renderer = renderer;
             animationManager = new AnimationManager();
             movementManager = new MovementManager();
@@ -55,36 +53,61 @@ namespace Platformer_Game
 
             var previousState = currentState;
 
-            // Always handle movement input
             movementManager.HandleInput(keyState, ref rect, ref currentState, ref facingLeft, ref isJumping, ref jumpSpeed, deltaTime, collisionManager, animationManager);
             movementManager.UpdatePosition(deltaTime, ref rect, ref currentState, ref isJumping, ref jumpSpeed, facingLeft, collisionManager);
 
-            // Handle special state transitions only if the current animation has ended
             if (animationEnded)
             {
                 HandleSpecialStateTransitions(keyState);
             }
 
-            // If state changes, reset animation
             if (previousState != currentState)
             {
                 animationManager.ResetAnimation();
             }
 
-            // Print the current state to the console for debugging
-            //Console.WriteLine($"Current State: {currentState}");
+            Console.WriteLine($"Current State: {currentState}");
 
-            // Play sound based on state changes
             HandleSoundEffects(keyState, previousState);
 
-            // Check collision with coins
-            CheckCoinCollision(tileLoader);
-
-            // ClimbingLayer kontrolü
             if (collisionManager.CheckClimbingLayer(rect))
             {
                 currentState = PlayerState.Climbing;
             }
+
+            CheckCoinCollision(tileLoader);
+
+            if (CheckFlagCollision(tileLoader.FlagRectangles))
+            {
+                // Do nothing for now, handled in the main loop
+            }
+        }
+
+        private void CheckCoinCollision(TileLoader tileLoader)
+        {
+            for (int i = 0; i < tileLoader.CoinRectangles.Count; i++)
+            {
+                SDL.SDL_Rect coinRect = tileLoader.CoinRectangles[i];
+                if (SDL.SDL_HasIntersection(ref rect, ref coinRect) == SDL.SDL_bool.SDL_TRUE)
+                {
+                    tileLoader.CollectedCoinPositions.Add((coinRect.x / tileLoader.TileWidth, coinRect.y / tileLoader.TileHeight));
+                    tileLoader.RemoveCoinAt(i); // Remove the coin at index
+                    soundManager.PlaySound("coin");
+                }
+            }
+        }
+
+        private bool CheckFlagCollision(List<SDL.SDL_Rect> flagRectangles)
+        {
+            foreach (var rect in flagRectangles)
+            {
+                SDL.SDL_Rect flagRect = rect;
+                if (SDL.SDL_HasIntersection(ref this.rect, ref flagRect) == SDL.SDL_bool.SDL_TRUE)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private void HandleSpecialStateTransitions(byte[] keyState)
@@ -144,28 +167,6 @@ namespace Platformer_Game
             }
         }
 
-        private void CheckCoinCollision(TileLoader tileLoader)
-        {
-            foreach (var coinRect in tileLoader.CoinRectangles.ToArray())
-            {
-                if (CheckCollision(rect, coinRect))
-                {
-                    tileLoader.CoinRectangles.Remove(coinRect);
-                    tileLoader.CollectedCoinPositions.Add((coinRect.x / tileLoader.TileWidth, coinRect.y / tileLoader.TileHeight)); // Add position to collected coins
-                    soundManager.PlaySound("coin"); // Play coin sound
-                    Console.WriteLine("Coin collected!");
-                }
-            }
-        }
-
-        private bool CheckCollision(SDL.SDL_Rect a, SDL.SDL_Rect b)
-        {
-            return (a.x < b.x + b.w &&
-                    a.x + a.w > b.x &&
-                    a.y < b.y + b.h &&
-                    a.h + a.y > b.y);
-        }
-
         public void Render(Camera camera)
         {
             IntPtr texture = animationManager.GetCurrentTexture(currentState);
@@ -180,7 +181,7 @@ namespace Platformer_Game
 
         public void RenderDebug(IntPtr renderer, Camera camera)
         {
-            SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Siyah renk
+            SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
             SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
             SDL.SDL_RenderDrawRect(renderer, ref renderRect);

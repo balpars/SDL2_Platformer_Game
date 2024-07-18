@@ -63,6 +63,7 @@ namespace Platformer_Game
 
             tileLoader.LoadTileset(tileWidth, tileHeight, tilesetImagePath, renderer);
             tileLoader.LoadCoinSpritesheet("Assets/Map/coin.png", renderer); // Load coin spritesheet
+            tileLoader.LoadFlagSpritesheet("Assets/Map/flag.png", renderer); // Load flag spritesheet
 
             var playerSpawnPoint = tileLoader.GetPlayerSpawnPoint(mapData);
             int spawnX = (int)playerSpawnPoint.Item1;
