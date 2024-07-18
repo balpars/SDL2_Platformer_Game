@@ -14,10 +14,12 @@ namespace Platformer_Game
 
                 bool running = true;
                 bool startGame = false;
-                bool debugMode = false; // Debug modu
+                bool debugMode = false;
                 bool levelCompleted = false;
                 bool levelTransition = false;
                 float transitionTimer = 0f;
+                bool showLevel2Screen = false;
+                float level2ScreenTimer = 0f;
 
                 MainMenu mainMenu = new MainMenu(renderer, font);
 
@@ -36,7 +38,7 @@ namespace Platformer_Game
                         }
                         else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
                         {
-                            debugMode = !debugMode; // P tuşuna basıldığında debug modunu değiştir
+                            debugMode = !debugMode;
                         }
                     }
 
@@ -67,7 +69,7 @@ namespace Platformer_Game
                             }
                             else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
                             {
-                                debugMode = !debugMode; // P tuşuna basıldığında debug modunu değiştir
+                                debugMode = !debugMode;
                             }
                         }
 
@@ -77,29 +79,40 @@ namespace Platformer_Game
                             byte[] keyState = new byte[numKeys];
                             System.Runtime.InteropServices.Marshal.Copy(keyStatePtr, keyState, 0, numKeys);
 
-                            if (!levelTransition)
+                            if (!levelTransition && !showLevel2Screen)
                             {
-                                player.Update(fixedDeltaTime, keyState, collisionManager, tileLoader); // Pass tileLoader to player.Update
-                                samurai.Update(fixedDeltaTime); // Update Samurai
+                                player.Update(fixedDeltaTime, keyState, collisionManager, tileLoader);
+                                samurai.Update(fixedDeltaTime);
                                 camera.Update(fixedDeltaTime);
-                                tileLoader.UpdateCoinAnimation(fixedDeltaTime); // Update coin animation
-                                tileLoader.UpdateFlagAnimation(fixedDeltaTime); // Update flag animation
-
-                                HandleCoinCollection(player, tileLoader, soundManager);
+                                tileLoader.UpdateCoinAnimation(fixedDeltaTime);
+                                tileLoader.UpdateFlagAnimation(fixedDeltaTime);
 
                                 if (CheckFlagCollision(player, tileLoader.FlagRectangles))
                                 {
                                     levelTransition = true;
-                                    transitionTimer = 2f; // 2 seconds transition
+                                    transitionTimer = 2f;
                                     soundManager.PlaySound("winning");
                                 }
                             }
-                            else
+                            else if (levelTransition)
                             {
                                 transitionTimer -= fixedDeltaTime;
                                 if (transitionTimer <= 0)
                                 {
                                     levelCompleted = true;
+                                    showLevel2Screen = true;
+                                    level2ScreenTimer = 3f;
+                                    levelTransition = false;
+                                }
+                            }
+                            else if (showLevel2Screen)
+                            {
+                                level2ScreenTimer -= fixedDeltaTime;
+                                if (level2ScreenTimer <= 0)
+                                {
+                                    LoadLevel2(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager);
+                                    showLevel2Screen = false;
+                                    levelCompleted = false;
                                 }
                             }
 
@@ -109,7 +122,7 @@ namespace Platformer_Game
                         SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
                         SDL.SDL_RenderClear(renderer);
 
-                        if (levelCompleted)
+                        if (showLevel2Screen)
                         {
                             RenderLevelComplete(renderer, font);
                         }
@@ -144,38 +157,13 @@ namespace Platformer_Game
             }
         }
 
-        private static void HandleCoinCollection(Player player, TileLoader tileLoader, SoundManager soundManager)
-        {
-            // Create a local copy of the player's rect
-            SDL.SDL_Rect playerRect = player.Rect;
-
-            for (int i = 0; i < tileLoader.CoinRectangles.Count; i++)
-            {
-                var coinRect = tileLoader.CoinRectangles[i];
-
-                if (SDL.SDL_HasIntersection(ref playerRect, ref coinRect) == SDL.SDL_bool.SDL_TRUE)
-                {
-                    var coinPosition = (coinRect.x / tileLoader.TileWidth, coinRect.y / tileLoader.TileHeight);
-
-                    if (!tileLoader.CollectedCoinPositions.Contains(coinPosition))
-                    {
-                        tileLoader.CollectedCoinPositions.Add(coinPosition);
-                        tileLoader.CoinRectangles.RemoveAt(i); // Remove the coin rectangle
-                        soundManager.PlaySound("coin");
-                        break; // Exit the loop after removing the coin to avoid invalid index issues
-                    }
-                }
-            }
-        }
-
         private static bool CheckFlagCollision(Player player, List<SDL.SDL_Rect> flagRectangles)
         {
-            // Create a local copy of the player's rect
             SDL.SDL_Rect playerRect = player.Rect;
 
             foreach (var rect in flagRectangles)
             {
-                SDL.SDL_Rect flagRect = rect; // Use a local variable
+                SDL.SDL_Rect flagRect = rect;
                 if (SDL.SDL_HasIntersection(ref playerRect, ref flagRect) == SDL.SDL_bool.SDL_TRUE)
                 {
                     return true;
@@ -207,6 +195,35 @@ namespace Platformer_Game
             SDL.SDL_Rect destRect = new SDL.SDL_Rect { x = 400 - textWidth / 2, y = 300 - textHeight / 2, w = textWidth, h = textHeight };
             SDL.SDL_RenderCopy(renderer, texture, IntPtr.Zero, ref destRect);
             SDL.SDL_DestroyTexture(texture);
+        }
+
+        private static void LoadLevel2(IntPtr renderer, ref TileLoader tileLoader, ref dynamic mapData, ref Player player, ref Samurai samurai, ref CollisionManager collisionManager, ref Camera camera, SoundManager soundManager)
+        {
+            string mapFilePath = "Assets/Map/demo_map2.json";
+            var mapJson = System.IO.File.ReadAllText(mapFilePath);
+            mapData = Newtonsoft.Json.JsonConvert.DeserializeObject(mapJson);
+
+            tileLoader = new TileLoader();
+            tileLoader.LoadCoinSpritesheet("Assets/Map/coin.png", renderer);
+            tileLoader.LoadFlagSpritesheet("Assets/Map/flag.png", renderer);
+
+            int tileWidth = Convert.ToInt32(mapData.tilewidth);
+            int tileHeight = Convert.ToInt32(mapData.tileheight);
+            tileLoader.LoadTileset(tileWidth, tileHeight, "Assets/Map/world_tileset.png", renderer);
+            tileLoader.GenerateCollisionRectangles(mapData);
+
+            var playerSpawnPoint = tileLoader.GetPlayerSpawnPoint(mapData);
+            int spawnX = (int)playerSpawnPoint.Item1;
+            int spawnY = (int)playerSpawnPoint.Item2 - 25;
+
+            player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager);
+            samurai = new Samurai(spawnX + 30, spawnY+38, 20, 40, renderer, soundManager);
+
+            collisionManager = new CollisionManager(tileLoader.CollisionRectangles, tileLoader.ClimbingRectangles);
+            camera.SetTarget(player);
+
+            player.LoadContent();
+            samurai.LoadContent();
         }
     }
 }
