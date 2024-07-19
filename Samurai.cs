@@ -10,7 +10,7 @@ namespace Platformer_Game
         private bool facingLeft;
         private SamuraiState currentState;
         private SamuraiAnimationManager animationManager;
-        private SamuraiMovementManager movementManager; // Add movement manager
+        private SamuraiMovementManager movementManager;
         private IntPtr renderer;
         private bool animationEnded;
         private SoundManager soundManager;
@@ -26,19 +26,27 @@ namespace Platformer_Game
         private const int SamuraiWidth = 20;
         private const int SamuraiHeight = 35;
 
-        private float stateTimer; // Timer to handle state transitions
+        private float stateTimer;
+
+        // Health properties
+        private int maxHealth;
+        private int currentHealth;
 
         public Samurai(int x, int y, int width, int height, IntPtr renderer, SoundManager soundManager)
         {
             rect = new SDL.SDL_Rect { x = x, y = y, w = SamuraiWidth, h = SamuraiHeight };
             this.renderer = renderer;
             animationManager = new SamuraiAnimationManager();
-            movementManager = new SamuraiMovementManager(); // Initialize movement manager
+            movementManager = new SamuraiMovementManager();
             facingLeft = true;
             currentState = SamuraiState.Idle;
             animationEnded = false;
             this.soundManager = soundManager;
             stateTimer = 0f;
+
+            // Initialize health
+            maxHealth = 100;
+            currentHealth = 100;
         }
 
         public void LoadContent()
@@ -69,7 +77,7 @@ namespace Platformer_Game
             else
             {
                 currentState = SamuraiState.Idle;
-                stateTimer = 0f; // Reset the state timer
+                stateTimer = 0f;
             }
 
             movementManager.MoveSamurai(deltaTime, ref rect, currentState);
@@ -91,6 +99,36 @@ namespace Platformer_Game
 
             SDL.SDL_RendererFlip flip = facingLeft ? SDL.SDL_RendererFlip.SDL_FLIP_HORIZONTAL : SDL.SDL_RendererFlip.SDL_FLIP_NONE;
             SDL.SDL_RenderCopyEx(renderer, texture, ref srcRect, ref dstRect, 0, IntPtr.Zero, flip);
+
+            // Render health bar
+            RenderHealthBar(camera);
+        }
+
+        private void RenderHealthBar(Camera camera)
+        {
+            SDL.SDL_Rect healthBarBackground = new SDL.SDL_Rect
+            {
+                x = rect.x,
+                y = rect.y - 10,
+                w = SamuraiWidth,
+                h = 4
+            };
+            SDL.SDL_Rect healthBarForeground = new SDL.SDL_Rect
+            {
+                x = rect.x,
+                y = rect.y - 10,
+                w = (int)(SamuraiWidth * ((float)currentHealth / maxHealth)),
+                h = 4
+            };
+
+            healthBarBackground = camera.GetRenderRect(healthBarBackground);
+            healthBarForeground = camera.GetRenderRect(healthBarForeground);
+
+            SDL.SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red for the background
+            SDL.SDL_RenderFillRect(renderer, ref healthBarBackground);
+
+            SDL.SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // Green for the foreground
+            SDL.SDL_RenderFillRect(renderer, ref healthBarForeground);
         }
 
         public void RenderDebug(IntPtr renderer, Camera camera)
@@ -99,6 +137,31 @@ namespace Platformer_Game
 
             SDL.SDL_Rect renderRect = camera.GetRenderRect(rect);
             SDL.SDL_RenderDrawRect(renderer, ref renderRect);
+        }
+
+        // Health management methods
+        public void TakeDamage(int amount)
+        {
+            currentHealth -= amount;
+            if (currentHealth <= 0)
+            {
+                currentHealth = 0;
+                // Handle samurai death (reset position, respawn, etc.)
+            }
+        }
+
+        public void Heal(int amount)
+        {
+            currentHealth += amount;
+            if (currentHealth > maxHealth)
+            {
+                currentHealth = maxHealth;
+            }
+        }
+
+        public bool IsDead()
+        {
+            return currentHealth <= 0;
         }
     }
 
