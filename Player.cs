@@ -60,7 +60,7 @@ namespace Platformer_Game
             animationManager.LoadContent(renderer);
         }
 
-        public void Update(float deltaTime, byte[] keyState, CollisionManager collisionManager, TileLoader tileLoader)
+        public void Update(float deltaTime, byte[] keyState, CollisionManager collisionManager, TileLoader tileLoader, Samurai samurai)
         {
             animationEnded = false;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
@@ -79,6 +79,17 @@ namespace Platformer_Game
             {
                 animationManager.ResetAnimation();
             }
+
+            if (currentState == PlayerState.Attacking || currentState == PlayerState.Attacking2 || currentState == PlayerState.AttackCombo)
+            {
+                SDL.SDL_Rect attackRect = GetAttackRect();
+                SDL.SDL_Rect samuraiRect = samurai.Rect; // Copy the property to a local variable
+                if (SDL.SDL_HasIntersection(ref attackRect, ref samuraiRect) == SDL.SDL_bool.SDL_TRUE)
+                {
+                    samurai.TakeDamage(1);
+                }
+            }
+
 
             AdjustCollisionHeight();
 
@@ -268,14 +279,32 @@ namespace Platformer_Game
             SDL.SDL_RenderDrawRect(renderer, ref renderRect);
         }
 
+        public SDL.SDL_Rect GetAttackRect()
+        {
+            int attackWidth = 30; // Width of the attack area
+            int attackHeight = 40; // Height of the attack area
+            int offsetX = facingLeft ? -attackWidth : rect.w; // Offset for attack direction
+
+            return new SDL.SDL_Rect
+            {
+                x = rect.x + offsetX,
+                y = rect.y,
+                w = attackWidth,
+                h = attackHeight
+            };
+        }
+
         // Health management methods
         public void TakeDamage(int amount)
         {
             currentHealth -= amount;
+            Console.WriteLine($"Player took {amount} damage, health is now {currentHealth}");
+
             if (currentHealth <= 0)
             {
                 currentHealth = 0;
                 // Handle player death (reset position, respawn, etc.)
+                Console.WriteLine("Player is dead!");
             }
         }
 

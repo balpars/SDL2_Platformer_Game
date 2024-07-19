@@ -81,8 +81,8 @@ namespace Platformer_Game
 
                             if (!levelTransition && !showLevel2Screen)
                             {
-                                player.Update(fixedDeltaTime, keyState, collisionManager, tileLoader);
-                                samurai.Update(fixedDeltaTime, collisionManager); // Ensure collisionManager is passed
+                                player.Update(fixedDeltaTime, keyState, collisionManager, tileLoader, samurai);
+                                samurai.Update(fixedDeltaTime, collisionManager, player);
                                 camera.Update(fixedDeltaTime);
                                 tileLoader.UpdateCoinAnimation(fixedDeltaTime);
                                 tileLoader.UpdateFlagAnimation(fixedDeltaTime);
@@ -118,6 +118,7 @@ namespace Platformer_Game
 
                             accumulator -= fixedDeltaTime;
                         }
+
 
                         SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
                         SDL.SDL_RenderClear(renderer);

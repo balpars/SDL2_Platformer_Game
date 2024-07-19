@@ -10,10 +10,11 @@ namespace Platformer_Game
         private bool facingLeft;
         private SamuraiState currentState;
         private SamuraiAnimationManager animationManager;
-        private SamuraiMovementManager movementManager;
+        private SamuraiMovementManager movementManager; // Add movement manager
         private IntPtr renderer;
         private bool animationEnded;
         private SoundManager soundManager;
+        private int health; // Add health field
 
         public Vector2 Position => new Vector2(rect.x, rect.y);
 
@@ -26,27 +27,31 @@ namespace Platformer_Game
         private const int SamuraiWidth = 20;
         private const int SamuraiHeight = 35;
 
-        private float stateTimer;
-
-        // Health properties
-        private int maxHealth;
-        private int currentHealth;
+        private float stateTimer; // Timer to handle state transitions
 
         public Samurai(int x, int y, int width, int height, IntPtr renderer, SoundManager soundManager)
         {
             rect = new SDL.SDL_Rect { x = x, y = y, w = SamuraiWidth, h = SamuraiHeight };
             this.renderer = renderer;
             animationManager = new SamuraiAnimationManager();
-            movementManager = new SamuraiMovementManager();
+            movementManager = new SamuraiMovementManager(); // Initialize movement manager
             facingLeft = true;
             currentState = SamuraiState.Idle;
             animationEnded = false;
             this.soundManager = soundManager;
             stateTimer = 0f;
+            health = 100; // Initialize health
+        }
 
-            // Initialize health
-            maxHealth = 100;
-            currentHealth = 100;
+        public void TakeDamage(int amount)
+        {
+            health -= amount;
+            Console.WriteLine($"Samurai took {amount} damage, health is now {health}");
+            if (health <= 0)
+            {
+                // Handle samurai death (e.g., play death animation, remove from game, etc.)
+                Console.WriteLine("Samurai is dead!");
+            }
         }
 
         public void LoadContent()
@@ -54,7 +59,7 @@ namespace Platformer_Game
             animationManager.LoadContent(renderer);
         }
 
-        public void Update(float deltaTime, CollisionManager collisionManager)
+        public void Update(float deltaTime, CollisionManager collisionManager, Player player)
         {
             animationEnded = false;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
@@ -77,11 +82,21 @@ namespace Platformer_Game
             else
             {
                 currentState = SamuraiState.Idle;
-                stateTimer = 0f;
+                stateTimer = 0f; // Reset the state timer
             }
 
             movementManager.MoveSamurai(deltaTime, ref rect, currentState);
             movementManager.UpdatePosition(deltaTime, ref rect, ref currentState, collisionManager);
+
+            if (currentState == SamuraiState.Attacking)
+            {
+                SDL.SDL_Rect attackRect = GetAttackRect();
+                SDL.SDL_Rect playerRect = player.Rect;
+                if (SDL.SDL_HasIntersection(ref attackRect, ref playerRect) == SDL.SDL_bool.SDL_TRUE)
+                {
+                    player.TakeDamage(1); // Adjust the damage amount as needed
+                }
+            }
 
             if (animationEnded)
             {
@@ -100,35 +115,7 @@ namespace Platformer_Game
             SDL.SDL_RendererFlip flip = facingLeft ? SDL.SDL_RendererFlip.SDL_FLIP_HORIZONTAL : SDL.SDL_RendererFlip.SDL_FLIP_NONE;
             SDL.SDL_RenderCopyEx(renderer, texture, ref srcRect, ref dstRect, 0, IntPtr.Zero, flip);
 
-            // Render health bar
             RenderHealthBar(camera);
-        }
-
-        private void RenderHealthBar(Camera camera)
-        {
-            SDL.SDL_Rect healthBarBackground = new SDL.SDL_Rect
-            {
-                x = rect.x,
-                y = rect.y - 10,
-                w = SamuraiWidth,
-                h = 4
-            };
-            SDL.SDL_Rect healthBarForeground = new SDL.SDL_Rect
-            {
-                x = rect.x,
-                y = rect.y - 10,
-                w = (int)(SamuraiWidth * ((float)currentHealth / maxHealth)),
-                h = 4
-            };
-
-            healthBarBackground = camera.GetRenderRect(healthBarBackground);
-            healthBarForeground = camera.GetRenderRect(healthBarForeground);
-
-            SDL.SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red for the background
-            SDL.SDL_RenderFillRect(renderer, ref healthBarBackground);
-
-            SDL.SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // Green for the foreground
-            SDL.SDL_RenderFillRect(renderer, ref healthBarForeground);
         }
 
         public void RenderDebug(IntPtr renderer, Camera camera)
@@ -139,30 +126,64 @@ namespace Platformer_Game
             SDL.SDL_RenderDrawRect(renderer, ref renderRect);
         }
 
-        // Health management methods
-        public void TakeDamage(int amount)
+        private void RenderHealthBar(Camera camera)
         {
-            currentHealth -= amount;
-            if (currentHealth <= 0)
+            // Constants
+            const int MaxHealth = 100; // Maximum health
+            int healthBarWidth = rect.w; // Width of the health bar
+            int healthBarHeight = 4; // Height of the health bar
+            int healthBarX = rect.x; // X position of the health bar
+            int healthBarY = rect.y - healthBarHeight - 2; // Y position of the health bar
+
+            // Clamp health to ensure it's between 0 and MaxHealth
+            int clampedHealth = Math.Max(0, Math.Min(health, MaxHealth));
+
+            // Create health bar background rectangle
+            SDL.SDL_Rect healthBarBackground = new SDL.SDL_Rect
             {
-                currentHealth = 0;
-                // Handle samurai death (reset position, respawn, etc.)
-            }
+                x = healthBarX,
+                y = healthBarY,
+                w = healthBarWidth,
+                h = healthBarHeight
+            };
+
+            // Create health bar foreground rectangle based on current health
+            SDL.SDL_Rect healthBarForeground = new SDL.SDL_Rect
+            {
+                x = healthBarX,
+                y = healthBarY,
+                w = (int)(healthBarWidth * (clampedHealth / (float)MaxHealth)),
+                h = healthBarHeight
+            };
+
+            // Get render rectangles for camera
+            healthBarBackground = camera.GetRenderRect(healthBarBackground);
+            healthBarForeground = camera.GetRenderRect(healthBarForeground);
+
+            // Render health bar background
+            SDL.SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red for the background
+            SDL.SDL_RenderFillRect(renderer, ref healthBarBackground);
+
+            // Render health bar foreground
+            SDL.SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // Green for the foreground
+            SDL.SDL_RenderFillRect(renderer, ref healthBarForeground);
         }
 
-        public void Heal(int amount)
+        public SDL.SDL_Rect GetAttackRect()
         {
-            currentHealth += amount;
-            if (currentHealth > maxHealth)
+            int attackWidth = 30; // Width of the attack area
+            int attackHeight = 40; // Height of the attack area
+            int offsetX = facingLeft ? -attackWidth : rect.w; // Offset for attack direction
+
+            return new SDL.SDL_Rect
             {
-                currentHealth = maxHealth;
-            }
+                x = rect.x + offsetX,
+                y = rect.y,
+                w = attackWidth,
+                h = attackHeight
+            };
         }
 
-        public bool IsDead()
-        {
-            return currentHealth <= 0;
-        }
     }
 
     public enum SamuraiState
