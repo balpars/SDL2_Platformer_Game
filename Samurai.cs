@@ -61,10 +61,32 @@ namespace Platformer_Game
             animationEnded = false;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
 
-            // Always run towards the player
-            currentState = SamuraiState.Running;
+            // Oyuncu ile samurai arasındaki mesafeyi hesapla
+            float distanceToPlayer = Vector2.Distance(Position, player.Position);
 
-            movementManager.MoveSamurai(deltaTime, ref rect, player.Position, ref facingLeft);
+            // Mesafe 20 birimden küçük veya eşitse saldırıya geç, değilse koşmaya devam et
+            if (distanceToPlayer <= 40)
+            {
+                // Oyuncuya dön
+                if (Position.X < player.Position.X)
+                {
+                    facingLeft = false;
+                }
+                else
+                {
+                    facingLeft = true;
+                }
+
+                // Dur ve saldırıya geç
+                currentState = SamuraiState.Attacking;
+            }
+            else
+            {
+                // Koşmaya devam et
+                currentState = SamuraiState.Running;
+                movementManager.MoveSamurai(deltaTime, ref rect, player.Position, ref facingLeft);
+            }
+
             movementManager.UpdatePosition(deltaTime, ref rect, collisionManager);
 
             if (currentState == SamuraiState.Attacking)
@@ -80,6 +102,7 @@ namespace Platformer_Game
             if (animationEnded)
             {
                 animationManager.ResetAnimation();
+                currentState = SamuraiState.Running; // Saldırı animasyonu bittiğinde tekrar koşma durumuna geç
             }
         }
 
