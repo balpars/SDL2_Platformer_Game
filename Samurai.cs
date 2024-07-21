@@ -27,8 +27,6 @@ namespace Platformer_Game
         private const int SamuraiWidth = 20;
         private const int SamuraiHeight = 35;
 
-        private float stateTimer; // Timer to handle state transitions
-
         public Samurai(int x, int y, int width, int height, IntPtr renderer, SoundManager soundManager)
         {
             rect = new SDL.SDL_Rect { x = x, y = y, w = SamuraiWidth, h = SamuraiHeight };
@@ -36,10 +34,9 @@ namespace Platformer_Game
             animationManager = new SamuraiAnimationManager();
             movementManager = new SamuraiMovementManager(); // Initialize movement manager
             facingLeft = true;
-            currentState = SamuraiState.Idle;
+            currentState = SamuraiState.Running; // Start in running state
             animationEnded = false;
             this.soundManager = soundManager;
-            stateTimer = 0f;
             health = 100; // Initialize health
         }
 
@@ -64,29 +61,11 @@ namespace Platformer_Game
             animationEnded = false;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
 
-            stateTimer += deltaTime;
+            // Always run towards the player
+            currentState = SamuraiState.Running;
 
-            // Handle state transitions
-            if (stateTimer <= 3.0f)
-            {
-                currentState = SamuraiState.Idle;
-            }
-            else if (stateTimer > 3.0f && stateTimer <= 5.0f)
-            {
-                currentState = SamuraiState.Running;
-            }
-            else if (stateTimer > 5.0f && stateTimer <= 10.0f)
-            {
-                currentState = SamuraiState.Attacking;
-            }
-            else
-            {
-                currentState = SamuraiState.Idle;
-                stateTimer = 0f; // Reset the state timer
-            }
-
-            movementManager.MoveSamurai(deltaTime, ref rect, currentState);
-            movementManager.UpdatePosition(deltaTime, ref rect, ref currentState, collisionManager);
+            movementManager.MoveSamurai(deltaTime, ref rect, player.Position, ref facingLeft);
+            movementManager.UpdatePosition(deltaTime, ref rect, collisionManager);
 
             if (currentState == SamuraiState.Attacking)
             {
@@ -183,7 +162,6 @@ namespace Platformer_Game
                 h = attackHeight
             };
         }
-
     }
 
     public enum SamuraiState
