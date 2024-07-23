@@ -10,11 +10,11 @@ namespace Platformer_Game
         private bool facingLeft;
         private SamuraiState currentState;
         private SamuraiAnimationManager animationManager;
-        private SamuraiMovementManager movementManager; // Add movement manager
+        private SamuraiMovementManager movementManager; 
         private IntPtr renderer;
         private bool animationEnded;
         private SoundManager soundManager;
-        private int health; // Add health field
+        private int health;  
 
         public Vector2 Position => new Vector2(rect.x, rect.y);
 
@@ -32,12 +32,12 @@ namespace Platformer_Game
             rect = new SDL.SDL_Rect { x = x, y = y, w = SamuraiWidth, h = SamuraiHeight };
             this.renderer = renderer;
             animationManager = new SamuraiAnimationManager();
-            movementManager = new SamuraiMovementManager(); // Initialize movement manager
+            movementManager = new SamuraiMovementManager(); 
             facingLeft = true;
-            currentState = SamuraiState.Running; // Start in running state
+            currentState = SamuraiState.Running; 
             animationEnded = false;
             this.soundManager = soundManager;
-            health = 100; // Initialize health
+            health = 100; 
         }
 
         public void TakeDamage(int amount)
@@ -46,7 +46,6 @@ namespace Platformer_Game
             Console.WriteLine($"Samurai took {amount} damage, health is now {health}");
             if (health <= 0)
             {
-                // Handle samurai death (e.g., play death animation, remove from game, etc.)
                 Console.WriteLine("Samurai is dead!");
             }
         }
@@ -61,13 +60,10 @@ namespace Platformer_Game
             animationEnded = false;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
 
-            // Oyuncu ile samurai arasındaki mesafeyi hesapla
             float distanceToPlayer = Vector2.Distance(Position, player.Position);
 
-            // Mesafe 20 birimden küçük veya eşitse saldırıya geç, değilse koşmaya devam et
             if (distanceToPlayer <= 40)
             {
-                // Oyuncuya dön
                 if (Position.X < player.Position.X)
                 {
                     facingLeft = false;
@@ -77,14 +73,12 @@ namespace Platformer_Game
                     facingLeft = true;
                 }
 
-                // Dur ve saldırıya geç
                 currentState = SamuraiState.Attacking;
             }
             else
             {
-                // Koşmaya devam et
                 currentState = SamuraiState.Running;
-                movementManager.MoveSamurai(deltaTime, ref rect, player.Position, ref facingLeft);
+                movementManager.MoveSamurai(deltaTime, ref rect, player.Position, ref facingLeft, collisionManager);
             }
 
             movementManager.UpdatePosition(deltaTime, ref rect, collisionManager);
@@ -95,14 +89,14 @@ namespace Platformer_Game
                 SDL.SDL_Rect playerRect = player.Rect;
                 if (SDL.SDL_HasIntersection(ref attackRect, ref playerRect) == SDL.SDL_bool.SDL_TRUE)
                 {
-                    player.TakeDamage(1); // Adjust the damage amount as needed
+                    player.TakeDamage(1); 
                 }
             }
 
             if (animationEnded)
             {
                 animationManager.ResetAnimation();
-                currentState = SamuraiState.Running; // Saldırı animasyonu bittiğinde tekrar koşma durumuna geç
+                currentState = SamuraiState.Running; 
             }
         }
 
@@ -131,16 +125,14 @@ namespace Platformer_Game
         private void RenderHealthBar(Camera camera)
         {
             // Constants
-            const int MaxHealth = 100; // Maximum health
-            int healthBarWidth = rect.w; // Width of the health bar
-            int healthBarHeight = 4; // Height of the health bar
-            int healthBarX = rect.x; // X position of the health bar
-            int healthBarY = rect.y - healthBarHeight - 2; // Y position of the health bar
+            const int MaxHealth = 100; 
+            int healthBarWidth = rect.w; 
+            int healthBarHeight = 4; 
+            int healthBarX = rect.x; 
+            int healthBarY = rect.y - healthBarHeight - 2; 
 
-            // Clamp health to ensure it's between 0 and MaxHealth
             int clampedHealth = Math.Max(0, Math.Min(health, MaxHealth));
 
-            // Create health bar background rectangle
             SDL.SDL_Rect healthBarBackground = new SDL.SDL_Rect
             {
                 x = healthBarX,
@@ -149,7 +141,6 @@ namespace Platformer_Game
                 h = healthBarHeight
             };
 
-            // Create health bar foreground rectangle based on current health
             SDL.SDL_Rect healthBarForeground = new SDL.SDL_Rect
             {
                 x = healthBarX,
@@ -158,24 +149,21 @@ namespace Platformer_Game
                 h = healthBarHeight
             };
 
-            // Get render rectangles for camera
             healthBarBackground = camera.GetRenderRect(healthBarBackground);
             healthBarForeground = camera.GetRenderRect(healthBarForeground);
 
-            // Render health bar background
-            SDL.SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red for the background
+            SDL.SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); 
             SDL.SDL_RenderFillRect(renderer, ref healthBarBackground);
 
-            // Render health bar foreground
-            SDL.SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); // Green for the foreground
+            SDL.SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255); 
             SDL.SDL_RenderFillRect(renderer, ref healthBarForeground);
         }
 
         public SDL.SDL_Rect GetAttackRect()
         {
-            int attackWidth = 30; // Width of the attack area
-            int attackHeight = 40; // Height of the attack area
-            int offsetX = facingLeft ? -attackWidth : rect.w; // Offset for attack direction
+            int attackWidth = 30; 
+            int attackHeight = 40; 
+            int offsetX = facingLeft ? -attackWidth : rect.w; 
 
             return new SDL.SDL_Rect
             {

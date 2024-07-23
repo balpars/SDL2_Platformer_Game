@@ -51,8 +51,8 @@ namespace Platformer_Game
             originalY = y + 42;
 
             // Initialize health
-            maxHealth = 100;
-            currentHealth = 100;
+            maxHealth = 150;
+            currentHealth = 150;
         }
 
         public void LoadContent()
