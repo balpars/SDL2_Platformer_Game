@@ -14,6 +14,7 @@
         CrouchWalking,
         Rolling,
         Sliding,
-        Climbing // Yeni eklenen durum
+        Climbing,
+        Death
     }
 }

@@ -18,6 +18,8 @@ namespace Platformer_Game
         private SoundManager soundManager;
         private int originalY; // Orijinal y pozisyonunu tutmak için
         private bool flag = false;
+        private bool isGameOver;
+        private GameOverScreen gameOverScreen;
 
         // Health properties
         private int maxHealth;
@@ -43,7 +45,7 @@ namespace Platformer_Game
             movementManager = new MovementManager();
             facingLeft = false;
             currentState = PlayerState.Idle;
-            previousState = PlayerState.Idle; // Başlangıçta previousState'i Idle olarak ayarla
+            previousState = PlayerState.Idle; 
             animationEnded = false;
             isJumping = false;
             jumpSpeed = 0f;
@@ -53,6 +55,9 @@ namespace Platformer_Game
             // Initialize health
             maxHealth = 150;
             currentHealth = 150;
+
+            isGameOver = false;
+            gameOverScreen = new GameOverScreen(renderer);
         }
 
         public void LoadContent()
@@ -62,6 +67,12 @@ namespace Platformer_Game
 
         public void Update(float deltaTime, byte[] keyState, CollisionManager collisionManager, TileLoader tileLoader, Samurai samurai)
         {
+            if (isGameOver)
+            {
+                gameOverScreen.Update(keyState);
+                return;
+            }
+
             animationEnded = false;
             animationManager.UpdateAnimation(currentState, deltaTime, ref animationEnded);
 
@@ -109,7 +120,6 @@ namespace Platformer_Game
                 // Do nothing for now, handled in the main loop
             }
 
-            // Mevcut durumu önceki durum olarak kaydet
             previousState = currentState;
         }
 
@@ -226,6 +236,12 @@ namespace Platformer_Game
 
         public void Render(Camera camera)
         {
+            if (isGameOver)
+            {
+                gameOverScreen.Render();
+                return;
+            }
+
             IntPtr texture = animationManager.GetCurrentTexture(currentState);
             SDL.SDL_Rect srcRect = animationManager.GetSourceRect();
             SDL.SDL_Rect dstRect = animationManager.GetDestinationRect(rect);
@@ -303,7 +319,9 @@ namespace Platformer_Game
             if (currentHealth <= 0)
             {
                 currentHealth = 0;
-                // Handle player death (reset position, respawn, etc.)
+                currentState = PlayerState.Death;
+                animationManager.ResetAnimation();
+                isGameOver = true;
                 Console.WriteLine("Player is dead!");
             }
         }
@@ -321,5 +339,19 @@ namespace Platformer_Game
         {
             return currentHealth <= 0;
         }
+
+        public void Reset(int x, int y)
+        {
+            rect.x = x;
+            rect.y = y;
+            currentHealth = maxHealth;
+            currentState = PlayerState.Idle;
+            previousState = PlayerState.Idle;
+            animationEnded = false;
+            isJumping = false;
+            jumpSpeed = 0f;
+            isGameOver = false;
+        }
+
     }
 }

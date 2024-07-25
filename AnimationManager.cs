@@ -43,6 +43,7 @@ namespace Platformer_Game
             spritesheets[PlayerState.Rolling] = LoadTexture(renderer, "Assets/_Roll.png");
             spritesheets[PlayerState.Sliding] = LoadTexture(renderer, "Assets/_SlideFull.png");
             spritesheets[PlayerState.Climbing] = LoadTexture(renderer, "Assets/_WallClimbNoMovement.png"); // Yeni tırmanma animasyonu
+            spritesheets[PlayerState.Death] = LoadTexture(renderer, "Assets/_Death.png");
 
             CalculateFrameCounts();
         }

@@ -173,6 +173,16 @@ namespace Platformer_Game
                 h = attackHeight
             };
         }
+        public void Reset(int x, int y)
+        {
+            rect.x = x;
+            rect.y = y;
+            facingLeft = true;
+            currentState = SamuraiState.Running;
+            animationEnded = false;
+            health = 100; 
+        }
+
     }
 
     public enum SamuraiState

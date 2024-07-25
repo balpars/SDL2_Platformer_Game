@@ -89,6 +89,8 @@ namespace Platformer_Game
             player.LoadContent();
             samurai.LoadContent(); // Load Samurai content
 
+            var gameOverScreen = new GameOverScreen(renderer);
+
             return (window, renderer, tileLoader, mapData, player, samurai, camera, collisionManager, soundManager, font);
         }
     }

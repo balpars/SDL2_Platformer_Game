@@ -1,15 +1,31 @@
 ﻿using SDL2;
 using System;
-using System.Collections.Generic;
 
 namespace Platformer_Game
 {
     class Program
     {
+        enum GameState
+        {
+            MainMenu,
+            Playing,
+            GameOver
+        }
+
         static void Main(string[] args)
         {
             try
             {
+                if (SDL.SDL_Init(SDL.SDL_INIT_VIDEO | SDL.SDL_INIT_AUDIO) < 0)
+                {
+                    throw new Exception($"SDL could not initialize! SDL_Error: {SDL.SDL_GetError()}");
+                }
+
+                if (SDL_ttf.TTF_Init() == -1)
+                {
+                    throw new Exception($"SDL_ttf could not initialize!");
+                }
+
                 var (window, renderer, tileLoader, mapData, player, samurai, camera, collisionManager, soundManager, font) = Initializer.Init();
 
                 bool running = true;
@@ -22,6 +38,14 @@ namespace Platformer_Game
                 float level2ScreenTimer = 0f;
 
                 MainMenu mainMenu = new MainMenu(renderer, font);
+                GameOverScreen gameOverScreen = new GameOverScreen(renderer);
+
+                GameState gameState = GameState.MainMenu;
+
+                const float targetFps = 60.0f;
+                const float fixedDeltaTime = 1.0f / targetFps;
+                float accumulator = 0.0f;
+                uint previousTime = SDL.SDL_GetTicks();
 
                 while (running)
                 {
@@ -32,48 +56,57 @@ namespace Platformer_Game
                         {
                             running = false;
                         }
-                        else if (!startGame)
+                        else if (gameState == GameState.MainMenu)
                         {
                             mainMenu.HandleInput(e, ref running, ref startGame);
-                        }
-                        else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
-                        {
-                            debugMode = !debugMode;
-                        }
-                    }
-
-                    if (!startGame)
-                    {
-                        mainMenu.Render();
-                        continue;
-                    }
-
-                    const float targetFps = 60.0f;
-                    const float fixedDeltaTime = 1.0f / targetFps;
-                    float accumulator = 0.0f;
-                    uint previousTime = SDL.SDL_GetTicks();
-
-                    Console.WriteLine("Entering main loop...");
-                    while (running)
-                    {
-                        uint currentTime = SDL.SDL_GetTicks();
-                        float deltaTime = (currentTime - previousTime) / 1000.0f;
-                        previousTime = currentTime;
-                        accumulator += deltaTime;
-
-                        while (SDL.SDL_PollEvent(out e) != 0)
-                        {
-                            if (e.type == SDL.SDL_EventType.SDL_QUIT)
+                            if (startGame)
                             {
-                                running = false;
+                                LoadLevel1(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager);
+                                gameState = GameState.Playing;
+                                startGame = false;
                             }
-                            else if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
+                        }
+                        else if (gameState == GameState.Playing)
+                        {
+                            if (e.type == SDL.SDL_EventType.SDL_KEYDOWN && e.key.keysym.sym == SDL.SDL_Keycode.SDLK_p)
                             {
                                 debugMode = !debugMode;
                             }
                         }
+                        else if (gameState == GameState.GameOver)
+                        {
+                            bool restartGame = false;
+                            bool goToMainMenu = false;
+                            gameOverScreen.HandleInput(e, ref running, ref restartGame, ref goToMainMenu);
+                            if (restartGame)
+                            {
+                                // Reset and reload level 1
+                                LoadLevel1(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager);
+                                gameState = GameState.Playing;
+                                startGame = false;
+                            }
+                            else if (goToMainMenu)
+                            {
+                                gameState = GameState.MainMenu;
+                            }
+                        }
+                    }
 
-                        while (accumulator >= fixedDeltaTime)
+                    if (gameState == GameState.MainMenu)
+                    {
+                        mainMenu.Render();
+                        SDL.SDL_RenderPresent(renderer);
+                        continue;
+                    }
+
+                    uint currentTime = SDL.SDL_GetTicks();
+                    float deltaTime = (currentTime - previousTime) / 1000.0f;
+                    previousTime = currentTime;
+                    accumulator += deltaTime;
+
+                    while (accumulator >= fixedDeltaTime)
+                    {
+                        if (gameState == GameState.Playing)
                         {
                             IntPtr keyStatePtr = SDL.SDL_GetKeyboardState(out int numKeys);
                             byte[] keyState = new byte[numKeys];
@@ -93,6 +126,11 @@ namespace Platformer_Game
                                     transitionTimer = 2f;
                                     soundManager.PlaySound("winning");
                                 }
+
+                                if (player.IsDead())
+                                {
+                                    gameState = GameState.GameOver;
+                                }
                             }
                             else if (levelTransition)
                             {
@@ -110,47 +148,45 @@ namespace Platformer_Game
                                 level2ScreenTimer -= fixedDeltaTime;
                                 if (level2ScreenTimer <= 0)
                                 {
+                                    RenderLevelComplete(renderer, font);
+                                    SDL.SDL_RenderPresent(renderer);
+                                    SDL.SDL_Delay(1000);
                                     LoadLevel2(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager);
                                     showLevel2Screen = false;
                                     levelCompleted = false;
                                 }
                             }
-
-                            accumulator -= fixedDeltaTime;
                         }
 
-
-                        SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-                        SDL.SDL_RenderClear(renderer);
-
-                        if (showLevel2Screen)
-                        {
-                            RenderLevelComplete(renderer, font);
-                        }
-                        else
-                        {
-                            tileLoader.RenderMap(mapData, renderer, camera);
-                            player.Render(camera);
-                            samurai.Render(camera);
-
-                            if (debugMode)
-                            {
-                                tileLoader.RenderDebug(renderer, camera);
-                                collisionManager.RenderDebug(renderer, camera);
-                                player.RenderDebug(renderer, camera);
-                                samurai.RenderDebug(renderer, camera);
-                            }
-                        }
-
-                        SDL.SDL_RenderPresent(renderer);
+                        accumulator -= fixedDeltaTime;
                     }
 
-                    Console.WriteLine("Cleaning up...");
-                    soundManager.Cleanup();
-                    SDL.SDL_DestroyRenderer(renderer);
-                    SDL.SDL_DestroyWindow(window);
-                    SDL.SDL_Quit();
+                    SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                    SDL.SDL_RenderClear(renderer);
+
+                    if (gameState == GameState.GameOver)
+                    {
+                        gameOverScreen.Render();
+                    }
+                    else if (gameState == GameState.Playing)
+                    {
+                        tileLoader.RenderMap(mapData, renderer, camera);
+                        player.Render(camera);
+                        samurai.Render(camera);
+
+                        if (debugMode)
+                        {
+                            tileLoader.RenderDebug(renderer, camera);
+                            collisionManager.RenderDebug(renderer, camera);
+                            player.RenderDebug(renderer, camera);
+                            samurai.RenderDebug(renderer, camera);
+                        }
+                    }
+
+                    SDL.SDL_RenderPresent(renderer);
                 }
+
+                Cleanup(renderer, window, soundManager);
             }
             catch (Exception ex)
             {
@@ -158,20 +194,36 @@ namespace Platformer_Game
             }
         }
 
-        private static bool CheckFlagCollision(Player player, List<SDL.SDL_Rect> flagRectangles)
+        private static void LoadLevel1(IntPtr renderer, ref TileLoader tileLoader, ref dynamic mapData, ref Player player, ref Samurai samurai, ref CollisionManager collisionManager, ref Camera camera, SoundManager soundManager)
         {
-            SDL.SDL_Rect playerRect = player.Rect;
+            // Reload map data
+            string mapFilePath = "Assets/Map/demo_map.json";
+            var mapJson = System.IO.File.ReadAllText(mapFilePath);
+            mapData = Newtonsoft.Json.JsonConvert.DeserializeObject(mapJson);
 
-            foreach (var rect in flagRectangles)
-            {
-                SDL.SDL_Rect flagRect = rect;
-                if (SDL.SDL_HasIntersection(ref playerRect, ref flagRect) == SDL.SDL_bool.SDL_TRUE)
-                {
-                    return true;
-                }
-            }
-            return false;
+            tileLoader = new TileLoader();
+            tileLoader.LoadCoinSpritesheet("Assets/Map/coin.png", renderer);
+            tileLoader.LoadFlagSpritesheet("Assets/Map/flag.png", renderer);
+
+            int tileWidth = Convert.ToInt32(mapData.tilewidth);
+            int tileHeight = Convert.ToInt32(mapData.tileheight);
+            tileLoader.LoadTileset(tileWidth, tileHeight, "Assets/Map/world_tileset.png", renderer);
+            tileLoader.GenerateCollisionRectangles(mapData);
+
+            var playerSpawnPoint = tileLoader.GetPlayerSpawnPoint(mapData);
+            int spawnX = (int)playerSpawnPoint.Item1;
+            int spawnY = (int)playerSpawnPoint.Item2 - 25;
+
+            player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager);
+            samurai = new Samurai(spawnX + 145, spawnY + 38, 20, 40, renderer, soundManager);
+
+            collisionManager = new CollisionManager(tileLoader.CollisionRectangles, tileLoader.ClimbingRectangles);
+            camera.SetTarget(player);
+
+            player.LoadContent();
+            samurai.LoadContent();
         }
+
 
         private static void RenderLevelComplete(IntPtr renderer, IntPtr font)
         {
@@ -198,6 +250,25 @@ namespace Platformer_Game
             SDL.SDL_DestroyTexture(texture);
         }
 
+
+        private static bool CheckFlagCollision(Player player, List<SDL.SDL_Rect> flagRectangles)
+        {
+            SDL.SDL_Rect playerRect = player.Rect;
+
+            foreach (var rect in flagRectangles)
+            {
+                SDL.SDL_Rect flagRect = rect;
+                if (SDL.SDL_HasIntersection(ref playerRect, ref flagRect) == SDL.SDL_bool.SDL_TRUE)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+ 
+
+
         private static void LoadLevel2(IntPtr renderer, ref TileLoader tileLoader, ref dynamic mapData, ref Player player, ref Samurai samurai, ref CollisionManager collisionManager, ref Camera camera, SoundManager soundManager)
         {
             string mapFilePath = "Assets/Map/demo_map2.json";
@@ -215,9 +286,9 @@ namespace Platformer_Game
 
             var playerSpawnPoint = tileLoader.GetPlayerSpawnPoint(mapData);
             int spawnX = (int)playerSpawnPoint.Item1;
-            int spawnY = (int)playerSpawnPoint.Item2-25;
+            int spawnY = (int)playerSpawnPoint.Item2 - 25;
 
-            player = new Player(spawnX, spawnY , 20, 40, renderer, soundManager);
+            player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager);
             samurai = new Samurai(spawnX + 145, spawnY + 38, 20, 40, renderer, soundManager);
 
             collisionManager = new CollisionManager(tileLoader.CollisionRectangles, tileLoader.ClimbingRectangles);
@@ -225,6 +296,15 @@ namespace Platformer_Game
 
             player.LoadContent();
             samurai.LoadContent();
+        }
+
+        private static void Cleanup(IntPtr renderer, IntPtr window, SoundManager soundManager)
+        {
+            soundManager.Cleanup();
+            SDL.SDL_DestroyRenderer(renderer);
+            SDL.SDL_DestroyWindow(window);
+            SDL_ttf.TTF_Quit();
+            SDL.SDL_Quit();
         }
     }
 }
