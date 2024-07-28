@@ -9,7 +9,8 @@ namespace Platformer_Game
         {
             MainMenu,
             Playing,
-            GameOver
+            GameOver,
+            Level2Screen
         }
 
         static void Main(string[] args)
@@ -92,8 +93,6 @@ namespace Platformer_Game
                         }
                     }
 
-                    
-
                     uint currentTime = SDL.SDL_GetTicks();
                     float deltaTime = (currentTime - previousTime) / 1000.0f;
                     previousTime = currentTime;
@@ -134,22 +133,21 @@ namespace Platformer_Game
                                 {
                                     levelCompleted = true;
                                     showLevel2Screen = true;
-                                    level2ScreenTimer = 3f;
+                                    level2ScreenTimer = 3f; // Delay before loading Level 2
                                     levelTransition = false;
+                                    gameState = GameState.Level2Screen;
                                 }
                             }
-                            else if (showLevel2Screen)
+                        }
+                        else if (gameState == GameState.Level2Screen)
+                        {
+                            level2ScreenTimer -= fixedDeltaTime;
+                            if (level2ScreenTimer <= 0)
                             {
-                                level2ScreenTimer -= fixedDeltaTime;
-                                if (level2ScreenTimer <= 0)
-                                {
-                                    RenderLevelComplete(renderer, font);
-                                    SDL.SDL_RenderPresent(renderer);
-                                    SDL.SDL_Delay(1000);
-                                    LoadLevel2(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager);
-                                    showLevel2Screen = false;
-                                    levelCompleted = false;
-                                }
+                                LoadLevel2(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager);
+                                gameState = GameState.Playing;
+                                showLevel2Screen = false;
+                                levelCompleted = false;
                             }
                         }
 
@@ -162,10 +160,8 @@ namespace Platformer_Game
                     if (gameState == GameState.MainMenu)
                     {
                         mainMenu.Render();
-                        SDL.SDL_RenderPresent(renderer);
-                        continue;
                     }
-                    if (gameState == GameState.GameOver)
+                    else if (gameState == GameState.GameOver)
                     {
                         gameOverScreen.Render();
                     }
@@ -182,6 +178,10 @@ namespace Platformer_Game
                             player.RenderDebug(renderer, camera);
                             samurai.RenderDebug(renderer, camera);
                         }
+                    }
+                    else if (gameState == GameState.Level2Screen)
+                    {
+                        RenderLevelComplete(renderer, font);
                     }
 
                     SDL.SDL_RenderPresent(renderer);
@@ -225,7 +225,6 @@ namespace Platformer_Game
             samurai.LoadContent();
         }
 
-
         private static void RenderLevelComplete(IntPtr renderer, IntPtr font)
         {
             SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -251,7 +250,6 @@ namespace Platformer_Game
             SDL.SDL_DestroyTexture(texture);
         }
 
-
         private static bool CheckFlagCollision(Player player, List<SDL.SDL_Rect> flagRectangles)
         {
             SDL.SDL_Rect playerRect = player.Rect;
@@ -266,9 +264,6 @@ namespace Platformer_Game
             }
             return false;
         }
-
- 
-
 
         private static void LoadLevel2(IntPtr renderer, ref TileLoader tileLoader, ref dynamic mapData, ref Player player, ref Samurai samurai, ref CollisionManager collisionManager, ref Camera camera, SoundManager soundManager)
         {
