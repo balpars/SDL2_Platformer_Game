@@ -92,12 +92,7 @@ namespace Platformer_Game
                         }
                     }
 
-                    if (gameState == GameState.MainMenu)
-                    {
-                        mainMenu.Render();
-                        SDL.SDL_RenderPresent(renderer);
-                        continue;
-                    }
+                    
 
                     uint currentTime = SDL.SDL_GetTicks();
                     float deltaTime = (currentTime - previousTime) / 1000.0f;
@@ -164,6 +159,12 @@ namespace Platformer_Game
                     SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
                     SDL.SDL_RenderClear(renderer);
 
+                    if (gameState == GameState.MainMenu)
+                    {
+                        mainMenu.Render();
+                        SDL.SDL_RenderPresent(renderer);
+                        continue;
+                    }
                     if (gameState == GameState.GameOver)
                     {
                         gameOverScreen.Render();
