@@ -258,10 +258,10 @@ namespace Platformer_Game
 
                     SDL.SDL_Rect destRect = new SDL.SDL_Rect
                     {
-                        x = x * TileWidth,
-                        y = y * TileHeight,
-                        w = TileWidth,
-                        h = TileHeight
+                        x = (x * TileWidth) - 20,
+                        y = (y * TileHeight) - 42,
+                        w = FlagFrameWidth,
+                        h = FlagFrameHeight
                     };
 
                     RenderFlag(renderer, camera.GetRenderRect(destRect));
@@ -412,10 +412,10 @@ namespace Platformer_Game
 
                                 SDL.SDL_Rect destRect = new SDL.SDL_Rect
                                 {
-                                    x = x * TileWidth,
-                                    y = y * TileHeight,
-                                    w = TileWidth,
-                                    h = TileHeight
+                                    x = (x * TileWidth) -20,
+                                    y = (y * TileHeight) -42,
+                                    w = FlagFrameWidth,
+                                    h = FlagFrameHeight
                                 };
 
                                 FlagRectangles.Add(destRect);
