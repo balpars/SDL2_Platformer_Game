@@ -24,6 +24,9 @@ namespace Platformer_Game
         // Health properties
         private int maxHealth;
         private int currentHealth;
+        public int CoinCount { get; set; }
+        private IntPtr font;
+
 
         public Vector2 Position => new Vector2(rect.x, rect.y);
 
@@ -56,8 +59,17 @@ namespace Platformer_Game
             maxHealth = 150;
             currentHealth = 150;
 
+            CoinCount = 0;
+
+
             isGameOver = false;
             gameOverScreen = new GameOverScreen(renderer);
+
+            font = SDL_ttf.TTF_OpenFont("C:\\Users\\ebrar\\source\\repos\\SDL2_Platformer_Game\\Assets\\Fonts\\GreenBerry.ttf", 16);
+            if (font == IntPtr.Zero)
+            {
+                Console.WriteLine("Failed to load font.");
+            }
         }
 
         public void LoadContent()
@@ -117,7 +129,17 @@ namespace Platformer_Game
 
             if (CheckFlagCollision(tileLoader.FlagRectangles))
             {
-                // Do nothing for now, handled in the main loop
+                for (int i = 0; i < tileLoader.CoinRectangles.Count; i++)
+                {
+                    SDL.SDL_Rect coinRect = tileLoader.CoinRectangles[i];
+                    if (SDL.SDL_HasIntersection(ref rect, ref coinRect) == SDL.SDL_bool.SDL_TRUE)
+                    {
+                        tileLoader.CollectedCoinPositions.Add((coinRect.x / tileLoader.TileWidth, coinRect.y / tileLoader.TileHeight));
+                        tileLoader.RemoveCoinAt(i); // Remove the coin at index
+                        CoinCount++; // Increment the coin counter
+                        soundManager.PlaySound("coin");
+                    }
+                }
             }
 
             previousState = currentState;
@@ -160,6 +182,7 @@ namespace Platformer_Game
                     tileLoader.CollectedCoinPositions.Add((coinRect.x / tileLoader.TileWidth, coinRect.y / tileLoader.TileHeight));
                     tileLoader.RemoveCoinAt(i); // Remove the coin at index
                     soundManager.PlaySound("coin");
+                    CoinCount++; 
                 }
             }
         }
@@ -248,7 +271,7 @@ namespace Platformer_Game
 
             if (currentState == PlayerState.Crouching || currentState == PlayerState.CrouchWalking)
             {
-                dstRect.y -= (CharacterHeight - CrouchHeight); // Crouch veya CrouchWalking durumunda yukarı kaydır
+                dstRect.y -= (CharacterHeight - CrouchHeight); 
             }
 
             dstRect = camera.GetRenderRect(dstRect);
@@ -258,6 +281,57 @@ namespace Platformer_Game
 
             // Render health bar
             RenderHealthBar(camera);
+
+            RenderCoinCount(camera);
+
+        }
+        private void RenderCoinCount(Camera camera)
+        {
+            if (font == IntPtr.Zero)
+            {
+                Console.WriteLine("Font is not loaded.");
+                return;
+            }
+
+            // Convert coin count to string
+            string coinCountText = $"Coins: {CoinCount}";
+
+            SDL.SDL_Color textColor = new SDL.SDL_Color { r = 255, g = 255, b = 255, a = 255 };
+
+            // Create surface and texture for text
+            IntPtr textSurface = SDL_ttf.TTF_RenderText_Solid(font, coinCountText, textColor);
+            if (textSurface == IntPtr.Zero)
+            {
+                Console.WriteLine("Failed to create text surface.");
+                return;
+            }
+
+            IntPtr textTexture = SDL.SDL_CreateTextureFromSurface(renderer, textSurface);
+            SDL.SDL_FreeSurface(textSurface); // Free the surface as it is no longer needed
+
+            if (textTexture == IntPtr.Zero)
+            {
+                Console.WriteLine("Failed to create text texture.");
+                return;
+            }
+
+            // Get text dimensions
+            SDL.SDL_QueryTexture(textTexture, out _, out _, out int textWidth, out int textHeight);
+
+            // Define fixed screen position for text
+            SDL.SDL_Rect textRect = new SDL.SDL_Rect
+            {
+                x = 10, // Fixed X position on screen
+                y = 10, // Fixed Y position on screen
+                w = textWidth +10,
+                h = textHeight +10
+            };
+
+            // Render text at fixed screen position
+            SDL.SDL_RenderCopy(renderer, textTexture, IntPtr.Zero, ref textRect);
+
+            // Clean up
+            SDL.SDL_DestroyTexture(textTexture);
         }
 
         private void RenderHealthBar(Camera camera)

@@ -150,7 +150,8 @@ namespace Platformer_Game
                             level2ScreenTimer -= fixedDeltaTime;
                             if (level2ScreenTimer <= 0)
                             {
-                                LoadLevel2(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager);
+                                int coinCountFromLevel1 = player.CoinCount;  // Get the CoinCount from Level 1
+                                LoadLevel2(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager, coinCountFromLevel1);
                                 gameState = GameState.Playing;
                                 showLevel2Screen = false;
                                 levelCompleted = false;
@@ -222,6 +223,9 @@ namespace Platformer_Game
             int spawnY = (int)playerSpawnPoint.Item2 - 25;
 
             player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager);
+
+            player.CoinCount = 0;
+
             samurai = new Samurai(spawnX + 145, spawnY + 38, 20, 40, renderer, soundManager);
 
             collisionManager = new CollisionManager(tileLoader.CollisionRectangles, tileLoader.ClimbingRectangles);
@@ -271,7 +275,7 @@ namespace Platformer_Game
             return false;
         }
 
-        private static void LoadLevel2(IntPtr renderer, ref TileLoader tileLoader, ref dynamic mapData, ref Player player, ref Samurai samurai, ref CollisionManager collisionManager, ref Camera camera, SoundManager soundManager)
+        private static void LoadLevel2(IntPtr renderer, ref TileLoader tileLoader, ref dynamic mapData, ref Player player, ref Samurai samurai, ref CollisionManager collisionManager, ref Camera camera, SoundManager soundManager, int startingCoinCount)
         {
             string mapFilePath = "Assets/Map/demo_map2.json";
             var mapJson = System.IO.File.ReadAllText(mapFilePath);
@@ -291,6 +295,9 @@ namespace Platformer_Game
             int spawnY = (int)playerSpawnPoint.Item2 - 25;
 
             player = new Player(spawnX, spawnY, 20, 40, renderer, soundManager);
+
+            player.CoinCount = startingCoinCount;  
+
             samurai = new Samurai(spawnX + 145, spawnY + 38, 20, 40, renderer, soundManager);
 
             collisionManager = new CollisionManager(tileLoader.CollisionRectangles, tileLoader.ClimbingRectangles);
