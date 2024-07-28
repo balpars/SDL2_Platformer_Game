@@ -61,6 +61,8 @@ namespace Platformer_Game
                             mainMenu.HandleInput(e, ref running, ref startGame);
                             if (startGame)
                             {
+                                soundManager.PlaySound("start");
+                                soundManager.PlaySoundLoop("ambiance");
                                 LoadLevel1(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager);
                                 gameState = GameState.Playing;
                                 startGame = false;
@@ -80,6 +82,8 @@ namespace Platformer_Game
                             gameOverScreen.HandleInput(e, ref running, ref restartGame, ref goToMainMenu);
                             if (restartGame)
                             {
+                                soundManager.PlaySound("start");
+                                soundManager.PlaySoundLoop("ambiance");
                                 // Reset and reload level 1
                                 LoadLevel1(renderer, ref tileLoader, ref mapData, ref player, ref samurai, ref collisionManager, ref camera, soundManager);
                                 gameState = GameState.Playing;
@@ -87,7 +91,9 @@ namespace Platformer_Game
                             }
                             else if (goToMainMenu)
                             {
+
                                 gameState = GameState.MainMenu;
+                                soundManager.StopSound("ambiance");
                             }
                         }
                     }

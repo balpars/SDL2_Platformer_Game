@@ -22,6 +22,8 @@ namespace Platformer_Game
             LoadSound("sword", "Assets/Sounds/sword.mp3");
             LoadSound("coin", "Assets/Sounds/coin.wav"); // Ensure this sound is loaded
             LoadSound("winning", "Assets/Sounds/winning.wav"); // Load the winning sound
+            LoadSound("start", "Assets/Sounds/start.mp3"); // Load the start sound
+            LoadSound("ambiance", "Assets/Sounds/ambiance.mp3"); // Load the ambiance sound
         }
 
 
@@ -51,6 +53,11 @@ namespace Platformer_Game
             }
         }
 
+        public void PlaySoundLoop(string soundName)
+        {
+            PlaySound(soundName, -1); // -1 means loop indefinitely
+        }
+
         public void StopSound(string soundName)
         {
             if (channels.ContainsKey(soundName))
@@ -68,6 +75,9 @@ namespace Platformer_Game
             }
             return false;
         }
+
+
+
 
         public void Cleanup()
         {
