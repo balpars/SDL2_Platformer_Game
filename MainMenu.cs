@@ -12,6 +12,7 @@ namespace Platformer_Game
         private SDL.SDL_Rect settingsButton;
         private SDL.SDL_Rect quitButton;
         private bool audioOn;
+        private IntPtr backgroundTexture;
 
         public MainMenu(IntPtr renderer, IntPtr font)
         {
@@ -22,12 +23,15 @@ namespace Platformer_Game
             settingsButton = new SDL.SDL_Rect { x = 300, y = 400, w = 200, h = 50 };
             quitButton = new SDL.SDL_Rect { x = 300, y = 500, w = 200, h = 50 };
             audioOn = true;
+            backgroundTexture = LoadTexture("Assets/Backgrounds/menu_background.png");
         }
 
         public void Render()
         {
             SDL.SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
             SDL.SDL_RenderClear(renderer);
+
+            SDL.SDL_RenderCopy(renderer, backgroundTexture, IntPtr.Zero, IntPtr.Zero);
 
             RenderButton(playButton, "PLAY");
             RenderButton(audioButton, audioOn ? "AUDIO ON" : "AUDIO OFF");
@@ -102,5 +106,19 @@ namespace Platformer_Game
         {
             return mouseX > button.x && mouseX < button.x + button.w && mouseY > button.y && mouseY < button.h + button.y;
         }
+
+        private IntPtr LoadTexture(string filePath)
+        {
+
+            IntPtr texture = SDL_image.IMG_LoadTexture(renderer, filePath);
+
+
+            if (texture == IntPtr.Zero)
+            {
+                Console.WriteLine($"Failed to load texture {filePath}! SDL_Error: {SDL.SDL_GetError()}");
+            }
+            return texture;
+        }
+
     }
 }
